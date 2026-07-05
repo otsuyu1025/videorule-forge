@@ -39,3 +39,32 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ─── このプロジェクト固有 ───────────────────────────────
+# データベース（ユーザーデータを含む）
+data/db.json
+data/db.backup.json
+
+# アップロードされた動画・音声ファイル（容量が大きい）
+data/uploads/
+
+# 抽出フレーム画像（一時ファイル）
+data/frames/
+
+# Whisper/Tesseract モデルデータ（再ダウンロード可能）
+data/tessdata/
+
+# ログファイル
+data/logs/
+data/dev.log
+
+# .env.local は除外済み（.env* で対応）
+# → .env.local.example は追跡する（テンプレートとして）
+
+# Tesseract 言語データ（pip/curl で再ダウンロード可能）
+*.traineddata
+*.traineddata.gz
+
+# Claude Code 設定（個人環境用）
+AGENTS.md
+CLAUDE.md
