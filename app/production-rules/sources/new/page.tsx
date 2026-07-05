@@ -152,7 +152,7 @@ export default function SourcesNewPage() {
               key: 'sampleVideo' as SourceKind,
               icon: '🎬',
               title: 'お手本動画を登録',
-              desc: 'InstagramなどSNSの動画URLか、手元の動画ファイルを登録します。AIが動画を解析してルール候補を生成します。',
+              desc: 'AIが動画を解析してルール候補を生成します。',
             },
             {
               key: 'guideline' as SourceKind,

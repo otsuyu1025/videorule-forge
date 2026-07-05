@@ -88,7 +88,7 @@ export default function ProductionRulesHubPage() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 1fr 40px 1fr', alignItems: 'center', gap: 0, marginBottom: 40 }}>
+      <div className="flow-steps-grid">
         <FlowStep
           number="01"
           icon="🗂️"
@@ -98,7 +98,8 @@ export default function ProductionRulesHubPage() {
           countLabel="件登録済み"
           href="/production-rules/sources"
         />
-        <div style={{ textAlign: 'center', color: '#BAE8E8', fontSize: 24 }}>→</div>
+        <div className="flow-arrow-h">→</div>
+        <div className="flow-arrow-v">↓</div>
         <FlowStep
           number="02"
           icon="💡"
@@ -109,7 +110,8 @@ export default function ProductionRulesHubPage() {
           href="/production-rules/candidates"
           highlight={data.pendingCandidates > 0}
         />
-        <div style={{ textAlign: 'center', color: '#BAE8E8', fontSize: 24 }}>→</div>
+        <div className="flow-arrow-h">→</div>
+        <div className="flow-arrow-v">↓</div>
         <FlowStep
           number="03"
           icon="✅"

@@ -81,13 +81,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 40 }}>
+      <div className="grid-stats">
         <StatCard label="動画制作ルール" value={data?.totalRules ?? 0} href="/production-rules" color="#BAE8E8" />
         <StatCard label="知識ソース" value={data?.totalVideos ?? 0} href="/production-rules/sources" color="#E3F6F5" />
         <StatCard label="完了した検査" value={data?.totalInspections ?? 0} href="/inspections" color="#FFD803" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="grid-two-col">
         <section>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', margin: 0 }}>最近の動画制作ルール</h2>

@@ -117,3 +117,63 @@ body {
     margin-left: 200px;
   }
 }
+
+/* ─── レスポンシブ グリッド ──────────────────────────────── */
+
+/* ダッシュボード統計 3列 → モバイルで1列 */
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+/* ダッシュボード 2列セクション → モバイルで1列 */
+.grid-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* フローステップ（動画制作ルール画面）横並び */
+.flow-steps-grid {
+  display: grid;
+  grid-template-columns: 1fr 40px 1fr 40px 1fr;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 40px;
+}
+
+/* 横矢印: デスクトップで表示 */
+.flow-arrow-h {
+  display: block;
+  text-align: center;
+  color: #BAE8E8;
+  font-size: 24px;
+}
+
+/* 縦矢印: デスクトップで非表示 */
+.flow-arrow-v {
+  display: none;
+  text-align: center;
+  color: #BAE8E8;
+  font-size: 22px;
+}
+
+@media (max-width: 767px) {
+  .grid-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 横矢印を縦矢印に切り替え */
+  .flow-arrow-h { display: none; }
+  .flow-arrow-v { display: block; }
+}
