@@ -14,6 +14,8 @@ const SNS_EXAMPLES = [
   { label: 'Twitter/X', placeholder: 'https://x.com/.../status/...' },
 ]
 
+// SNS_EXAMPLES は snsDownload フラグが有効な場合のみ使用
+
 function fileTypeIcon(name: string) {
   const ext = name.split('.').pop()?.toLowerCase()
   if (ext === 'pdf') return '📄'
@@ -26,7 +28,8 @@ function fileTypeIcon(name: string) {
 export default function SourcesNewPage() {
   const router = useRouter()
   const [kind, setKind] = useState<SourceKind>(null)
-  const [sampleMode, setSampleMode] = useState<SampleMode>('sns')
+  const [snsDownloadEnabled, setSnsDownloadEnabled] = useState(false)
+  const [sampleMode, setSampleMode] = useState<SampleMode>('file')
 
   // SNS URL フォーム
   const [snsUrl, setSnsUrl] = useState('')
@@ -34,9 +37,15 @@ export default function SourcesNewPage() {
   const [downloading, setDownloading] = useState(false)
   const [snsBrowser, setSnsBrowser] = useState<string | null>(null)
 
-  // ブラウザ設定を取得
+  // 機能フラグとブラウザ設定を取得
   useEffect(() => {
-    fetch('/api/settings').then(r => r.json()).then(d => setSnsBrowser(d.snsBrowser ?? ''))
+    Promise.all([
+      fetch('/api/features').then(r => r.json()),
+      fetch('/api/settings').then(r => r.json()),
+    ]).then(([features, settings]) => {
+      setSnsDownloadEnabled(features.snsDownload === true)
+      setSnsBrowser(settings.snsBrowser ?? '')
+    })
   }, [])
 
   // ファイルアップロードフォーム（お手本動画）
@@ -186,7 +195,7 @@ export default function SourcesNewPage() {
           {/* タブ */}
           <div style={{ display: 'flex', gap: 0, padding: '16px 28px 0', borderBottom: '2px solid #E3F6F5', marginTop: 16 }}>
             {([
-              { key: 'sns' as SampleMode, label: '📱 SNSのURLから取得' },
+              ...(snsDownloadEnabled ? [{ key: 'sns' as SampleMode, label: '📱 SNSのURLから取得' }] : []),
               { key: 'file' as SampleMode, label: '📂 ファイルをアップロード' },
             ]).map(tab => (
               <button
@@ -206,8 +215,8 @@ export default function SourcesNewPage() {
             ))}
           </div>
 
-          {/* SNS URL フォーム */}
-          {sampleMode === 'sns' && (
+          {/* SNS URL フォーム (ENABLE_SNS_DOWNLOAD=true の場合のみ表示) */}
+          {sampleMode === 'sns' && snsDownloadEnabled && (
             <form onSubmit={handleSnsDownload} style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div style={{ background: '#F5FCFC', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: '#2D334A', lineHeight: 1.7 }}>
                 <strong>対応SNS:</strong> Instagram・TikTok・YouTube・Twitter/X など<br />

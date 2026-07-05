@@ -58,6 +58,10 @@ function toUserFriendlyError(stderr: string, url: string, cookieBrowser?: string
 }
 
 export async function POST(request: NextRequest) {
+  if (process.env.ENABLE_SNS_DOWNLOAD !== 'true') {
+    return Response.json({ error: 'SNS動画取得機能は現在無効です。管理者にお問い合わせください。' }, { status: 403 })
+  }
+
   const { snsUrl, customTitle } = await request.json()
 
   if (!snsUrl || typeof snsUrl !== 'string') {

@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+data/db.json
+data/db.backup.json
+data/uploads
+data/frames
+data/logs
+data/tessdata
+data/dev.log
+*.traineddata
+*.traineddata.gz
+.env.local
+.DS_Store
+coverage
+*.tsbuildinfo

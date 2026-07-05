@@ -2,6 +2,7 @@ import ffmpeg from 'fluent-ffmpeg'
 import { mkdir, readdir } from 'fs/promises'
 import path from 'path'
 import type { AnalysisConfig } from '../types'
+import { uploadFramesToR2 } from '@/lib/storage/r2'
 
 export async function extractFrames(
   source: string,
@@ -49,8 +50,15 @@ export async function extractFrames(
 
   console.log(`[ffmpeg] フレーム抽出完了: ${files.length}枚`)
 
-  return files.map((filename, index) => ({
+  const result = files.map((filename, index) => ({
     path: path.join(framesDir, filename),
     timestamp: index * config.frameInterval,
   }))
+
+  // R2が設定されている場合はアップロード（ローカル開発では無視）
+  await uploadFramesToR2(videoId, result).catch(err =>
+    console.error(`[r2] アップロード失敗 (続行): ${err.message}`)
+  )
+
+  return result
 }
