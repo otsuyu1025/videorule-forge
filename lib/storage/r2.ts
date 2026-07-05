@@ -63,3 +63,40 @@ export async function deleteFramesFromR2(videoId: string): Promise<void> {
   }
   console.log(`[r2] フレーム削除完了 (video: ${videoId})`)
 }
+
+// 保持期間を過ぎたフレームを一括削除（cron から呼び出す）
+export async function deleteExpiredFrames(retentionDays: number): Promise<{ deleted: number; errors: number }> {
+  const client = getClient()
+  const bucket = process.env.R2_BUCKET
+  if (!client || !bucket) return { deleted: 0, errors: 0 }
+
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
+  let deleted = 0
+  let errors = 0
+  let token: string | undefined
+
+  do {
+    const listed = await client.send(new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: 'frames/',
+      ContinuationToken: token,
+    }))
+
+    for (const obj of listed.Contents ?? []) {
+      if (!obj.Key || !obj.LastModified) continue
+      if (obj.LastModified < cutoff) {
+        try {
+          await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: obj.Key }))
+          deleted++
+        } catch {
+          errors++
+        }
+      }
+    }
+
+    token = listed.NextContinuationToken
+  } while (token)
+
+  console.log(`[r2] 期限切れフレーム削除: ${deleted}件 (${retentionDays}日超, エラー: ${errors}件)`)
+  return { deleted, errors }
+}

@@ -15,6 +15,24 @@ services:
       retries: 3
       start_period: 40s
 
+  # フレーム画像の自動クリーンアップ（1日1回実行）
+  cleanup:
+    image: alpine:3.20
+    env_file: .env.local
+    depends_on:
+      app:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "while true; do
+        echo \"[cleanup] $(date) - フレームクリーンアップ開始\";
+        curl -s -X POST http://app:3000/api/admin/cleanup-frames
+          -H \"x-cleanup-secret: $${CLEANUP_SECRET}\"
+          | head -c 200;
+        echo;
+        sleep 86400;
+      done"
+    restart: unless-stopped
+
 volumes:
   uploads:
   logs:

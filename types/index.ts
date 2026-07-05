@@ -157,7 +157,8 @@ export interface Guideline {
 export type SnsBrowser = 'chrome' | 'firefox' | 'safari' | 'edge' | 'brave' | 'chromium'
 
 export interface AppSettings {
-  snsBrowser?: SnsBrowser   // SNS動画取得に使うブラウザ（Cookie読み取り用）
+  snsBrowser?: SnsBrowser
+  frameRetentionDays?: number  // フレーム画像の保持日数（デフォルト30日、R2クリーンアップで使用）
 }
 
 export interface DbSchema {
