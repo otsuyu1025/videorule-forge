@@ -31,3 +31,89 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* ─── レスポンシブレイアウト ──────────────────────────────── */
+
+/* サイドバー: デスクトップは常に fixed 表示 */
+.app-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  z-index: 200;
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+}
+
+/* メインコンテンツ: サイドバー幅分だけ右にずらす */
+.app-main {
+  margin-left: 240px;
+  min-height: 100vh;
+  background: #FFFFFE;
+}
+
+/* モバイルヘッダー (デスクトップでは非表示) */
+.mobile-header {
+  display: none;
+}
+
+/* オーバーレイ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 199;
+}
+
+/* ─── スマホ (767px 以下) ───────────────────────────────── */
+@media (max-width: 767px) {
+  /* サイドバー: 非表示状態 (左に隠れている) */
+  .app-sidebar {
+    top: 52px;
+    height: calc(100vh - 52px);
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+  }
+
+  /* サイドバー: 開いた状態 */
+  .app-sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* メインコンテンツ: サイドバー分の余白なし、モバイルヘッダー分だけ下げる */
+  .app-main {
+    margin-left: 0;
+    padding-top: 52px;
+  }
+
+  /* モバイルヘッダー表示 */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background: #272343;
+    padding: 0 16px;
+    z-index: 201;
+  }
+
+  /* オーバーレイ: open 時だけ表示 */
+  .sidebar-overlay.overlay-open {
+    display: block;
+  }
+}
+
+/* ─── タブレット (768px 〜 1023px) ───────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-sidebar {
+    width: 200px !important;
+  }
+  .app-main {
+    margin-left: 200px;
+  }
+}

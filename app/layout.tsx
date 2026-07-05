@@ -15,12 +15,12 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body style={{ margin: 0, background: '#FFFFFE' }}>
-        <div style={{ display: 'flex', minHeight: '100vh' }}>
-          <Sidebar />
-          <main style={{ flex: 1, overflowY: 'auto', background: '#FFFFFE' }}>
-            {children}
-          </main>
-        </div>
+        {/* Sidebar はクライアントコンポーネント。モバイルヘッダーも内包 */}
+        <Sidebar />
+        {/* メインコンテンツ: app-main クラスでレスポンシブ margin を制御 */}
+        <main className="app-main">
+          {children}
+        </main>
       </body>
     </html>
   )
