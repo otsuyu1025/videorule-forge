@@ -93,7 +93,7 @@ export default function ProductionRulesHubPage() {
           number="01"
           icon="🗂️"
           title="知識ソース"
-          description="お手本動画とガイドラインを登録します。AIが内容を解析し、ルールの材料を抽出します。"
+          description="ガイドラインとお手本動画を登録します。AIが内容を解析し、ルールの材料を抽出します。"
           count={data.totalSources}
           countLabel="件登録済み"
           href="/production-rules/sources"
@@ -159,7 +159,7 @@ export default function ProductionRulesHubPage() {
             まだ知識ソースが登録されていません
           </div>
           <div style={{ fontSize: 14, color: '#2D334A', lineHeight: 1.8, marginBottom: 24, opacity: 0.8 }}>
-            お手本動画またはガイドラインを登録して、<br />
+            ガイドラインまたはお手本動画を登録して、<br />
             動画制作ルールを育て始めましょう。
           </div>
           <Link href="/production-rules/sources/new" style={{

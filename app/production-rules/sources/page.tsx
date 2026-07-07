@@ -82,7 +82,7 @@ export default function SourcesPage() {
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>知識ソース</h1>
           <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
             動画制作ルールを育てるための材料です。<br />
-            お手本動画とガイドラインを登録します。
+            ガイドラインとお手本動画を登録します。
           </p>
         </div>
         <Link href="/production-rules/sources/new" style={{
@@ -117,7 +117,7 @@ export default function SourcesPage() {
             知識ソースがまだありません
           </div>
           <div style={{ fontSize: 14, color: '#2D334A', lineHeight: 1.8, marginBottom: 20, opacity: 0.8 }}>
-            お手本動画またはガイドラインを登録してください。<br />
+            ガイドラインまたはお手本動画を登録してください。<br />
             AIが内容を解析してルール候補を生成します。
           </div>
           <Link href="/production-rules/sources/new" style={{
