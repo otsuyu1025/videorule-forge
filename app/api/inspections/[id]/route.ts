@@ -33,3 +33,16 @@ export async function PUT(
   await db.write()
   return Response.json(inspection)
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const db = await getDb()
+  const idx = db.data.videoInspections.findIndex(i => i.id === id)
+  if (idx === -1) return Response.json({ error: '検査が見つかりません' }, { status: 404 })
+  db.data.videoInspections.splice(idx, 1)
+  await db.write()
+  return Response.json({ success: true })
+}

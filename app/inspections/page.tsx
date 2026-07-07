@@ -278,6 +278,17 @@ export default function InspectionsPage() {
     }
   }
 
+  const handleDelete = async (e: React.MouseEvent, inspectionId: string, isStuck: boolean) => {
+    e.stopPropagation()
+    const msg = isStuck
+      ? '検証中のまま止まっている検品を削除しますか？'
+      : 'この検品履歴を削除しますか？この操作は元に戻せません。'
+    if (!confirm(msg)) return
+    await fetch(`/api/inspections/${inspectionId}`, { method: 'DELETE' })
+    if (expandedId === inspectionId) setExpandedId(null)
+    setHistory(prev => prev.filter(h => h.inspection.id !== inspectionId))
+  }
+
   const handleHumanOverride = async (inspectionId: string, result: InspectionResult, override: string) => {
     await fetch(`/api/inspections/${inspectionId}`, {
       method: 'PUT',
@@ -561,6 +572,19 @@ export default function InspectionsPage() {
                           return <div style={{ fontSize: 11, color: '#BAE8E8', opacity: 0.7 }}>実行時間: {label}</div>
                         })()}
                       </div>
+                      <button
+                        onClick={e => handleDelete(e, inspection.id, isRunning)}
+                        title="この検品を削除"
+                        style={{
+                          background: 'none', border: '1px solid #eee', borderRadius: 6,
+                          cursor: 'pointer', padding: '4px 7px', color: '#ccc', fontSize: 14,
+                          lineHeight: 1, flexShrink: 0,
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#f8d7da'; (e.currentTarget as HTMLButtonElement).style.color = '#dc3545' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#eee'; (e.currentTarget as HTMLButtonElement).style.color = '#ccc' }}
+                      >
+                        🗑
+                      </button>
                       {!isRunning && <span style={{ color: '#BAE8E8', fontSize: 16 }}>{isExpanded ? '▲' : '▼'}</span>}
                     </div>
                   </div>

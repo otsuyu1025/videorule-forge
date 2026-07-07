@@ -21,7 +21,8 @@ const anthropic = new Anthropic({
  */
 async function logTokenCount(
   label: string,
-  params: Parameters<typeof anthropic.messages.countTokens>[0]
+  // countTokens は max_tokens を受け付けないため、必要なフィールドのみ渡す
+  params: { model: string; messages: Anthropic.MessageParam[]; system?: string }
 ): Promise<void> {
   try {
     const count = await anthropic.messages.countTokens(params)
@@ -230,7 +231,7 @@ JSONで回答してください。3〜5個のルール候補を返してくだ�
 
   const messageContent = buildVisionContent(promptText, feature.frames || [])
   const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: messageContent }] }
-  await logTokenCount('ルール候補生成', callParams)
+  await logTokenCount('ルール候補生成', { model: MODEL, messages: callParams.messages })
 
   const message = await anthropic.messages.create(callParams)
   logUsage('ルール候補生成', message.usage)
@@ -309,7 +310,7 @@ ${rulesText}
 
   const messageContent = buildVisionContent(promptText, feature.frames || [])
   const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: messageContent }] }
-  await logTokenCount('動画検品', callParams)
+  await logTokenCount('動画検品', { model: MODEL, messages: callParams.messages })
 
   const message = await anthropic.messages.create(callParams)
   logUsage('動画検品', message.usage)
@@ -347,7 +348,7 @@ ${guideline.content}
 }`
 
   const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: prompt }] }
-  await logTokenCount('ガイドライン解析', callParams)
+  await logTokenCount('ガイドライン解析', { model: MODEL, messages: callParams.messages })
 
   const message = await anthropic.messages.create(callParams)
   logUsage('ガイドライン解析', message.usage)

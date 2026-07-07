@@ -12,6 +12,7 @@ function getClient(): S3Client | null {
     region: 'auto',
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId, secretAccessKey },
+    requestHandler: { requestTimeout: 15000, connectionTimeout: 5000 },
   })
 }
 
