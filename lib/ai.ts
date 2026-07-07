@@ -110,16 +110,22 @@ JSONで回答してください。3〜5個のルール候補を返してくだ�
   const message = await anthropic.messages.create(callParams)
   logUsage('ルール候補生成', message.usage)
 
+  if (message.stop_reason === 'max_tokens') {
+    throw new Error('TOKEN_LIMIT_EXCEEDED')
+  }
+
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) return []
+  if (!jsonMatch) {
+    throw new Error('JSON_PARSE_FAILED')
+  }
 
   try {
     const parsed = JSON.parse(jsonMatch[0])
     return parsed.candidates || []
   } catch {
     console.error('[AI] JSON parse error (candidates):', jsonMatch[0].slice(0, 200))
-    return []
+    throw new Error('JSON_PARSE_FAILED')
   }
 }
 
@@ -200,15 +206,21 @@ ${guideline.content}
   const message = await anthropic.messages.create(callParams)
   logUsage('ガイドライン解析', message.usage)
 
+  if (message.stop_reason === 'max_tokens') {
+    throw new Error('TOKEN_LIMIT_EXCEEDED')
+  }
+
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) return []
+  if (!jsonMatch) {
+    throw new Error('JSON_PARSE_FAILED')
+  }
 
   try {
     const parsed = JSON.parse(jsonMatch[0])
     return parsed.candidates || []
   } catch {
-    console.error('[AI] JSON parse error (candidates):', jsonMatch[0].slice(0, 200))
-    return []
+    console.error('[AI] JSON parse error (guideline):', jsonMatch[0].slice(0, 200))
+    throw new Error('JSON_PARSE_FAILED')
   }
 }

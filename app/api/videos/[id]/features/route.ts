@@ -71,7 +71,13 @@ function toUserFriendlyError(error: unknown, failedAt: VideoStatus): string {
   if (failedAt === 'generating_candidates') {
     if (msg.includes('api key') || msg.includes('auth') || msg.includes('resolve authentication')
       || msg.includes('unauthorized') || msg.includes('invalid x-api-key')) {
-      return 'ルール候補の生成に失敗しました。.env.local の ANTHROPIC_API_KEY が正しく設定されているか確認してください。'
+      return 'ルール候補の生成に失敗しました。ANTHROPIC_API_KEY が正しく設定されているか確認してください。'
+    }
+    if (msg === 'TOKEN_LIMIT_EXCEEDED') {
+      return '動画の解析データが多すぎて処理できませんでした。動画を短くするか、フレーム抽出間隔を広げてから再試行してください。'
+    }
+    if (msg === 'JSON_PARSE_FAILED') {
+      return 'AIの応答を正しく解析できませんでした。時間をおいてから再試行してください。'
     }
     if (msg.includes('rate limit') || msg.includes('overloaded')) {
       return 'AIサービスが混雑しています。時間をおいてから再試行してください。'

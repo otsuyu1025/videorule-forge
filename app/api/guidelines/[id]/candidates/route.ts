@@ -47,6 +47,17 @@ export async function POST(
     return Response.json(created, { status: 201 })
   } catch (error) {
     console.error('Guideline analysis error:', error)
-    return Response.json({ error: 'ルール候補の生成に失敗しました。時間をおいてからもう一度お試しください。' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : ''
+    if (msg === 'TOKEN_LIMIT_EXCEEDED') {
+      return Response.json({
+        error: 'ガイドラインのテキストが長すぎて処理できませんでした。テキストを分割して複数ファイルに分けてアップロードしてください。',
+      }, { status: 422 })
+    }
+    if (msg === 'JSON_PARSE_FAILED') {
+      return Response.json({
+        error: 'AIの応答を正しく解析できませんでした。もう一度お試しください。',
+      }, { status: 500 })
+    }
+    return Response.json({ error: 'ルール候補の生成に失敗しました。時間をおいてから再度お試しください。' }, { status: 500 })
   }
 }
