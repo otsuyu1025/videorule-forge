@@ -10,27 +10,25 @@
 
 ```mermaid
 graph TB
-    User([ユーザー]) --> Vercel
+    User([ユーザー]) --> Railway
 
-    subgraph Vercel ["Vercel（フロントエンド・無料）"]
+    subgraph Railway ["Railway（$5/月）"]
         UI["Next.js App\nUI + API Routes"]
+        Proc["動画処理\nffmpeg / Whisper / OCR / yt-dlp"]
+        DB2[("データベース\nlowdb / db.json\n※Volumeで永続化")]
+        UI --- Proc
+        UI --- DB2
     end
 
-    subgraph Hetzner ["Hetzner CX22（処理サーバー・€3.79/月）"]
-        Proc["処理API\nffmpeg / Whisper / OCR"]
+    subgraph GitHub ["GitHub"]
+        Repo["リポジトリ\npush → 自動デプロイ"]
     end
 
-    subgraph Store ["外部ストレージ"]
-        DB[(Supabase\nPostgreSQL)]
-        R2[(Cloudflare R2\nフレーム画像\n30日後自動削除)]
-    end
-
+    R2[(Cloudflare R2\nフレーム画像\n30日後自動削除)]
     Claude["Anthropic Claude\nHaiku 4.5"]
 
-    UI -- "DB読み書き" --> DB
-    UI -- "動画処理リクエスト" --> Proc
+    Repo -- "push時に自動デプロイ" --> Railway
     Proc -- "フレーム保存" --> R2
-    Proc -- "解析結果保存" --> DB
     UI -- "ルール生成・検品" --> Claude
 ```
 
@@ -38,11 +36,12 @@ graph TB
 
 | コンポーネント | 役割 | コスト |
 |---|---|---|
-| Vercel | Next.js ホスティング・CDN | 無料 |
-| Supabase | PostgreSQL データベース | 無料（500MB まで） |
-| Hetzner CX22 | 動画処理（ffmpeg・Whisper・OCR・yt-dlp） | €3.79/月 |
+| Railway | Next.js ホスティング・動画処理（ffmpeg・Whisper・OCR・yt-dlp）・DB | $5/月 |
 | Cloudflare R2 | フレーム画像ストレージ（30日後自動削除） | 10GB まで無料 |
-| Anthropic Claude | ルール候補生成・動画検品 AI | 従量課金 |
+| Anthropic Claude | ルール候補生成・動画検品 AI | 従量課金（目安：月数百円） |
+| GitHub | ソースコード管理・自動デプロイトリガー | 無料 |
+
+> **データベースについて**: 現在は Railway の Volume 上の `db.json`（lowdb）を使用。将来的に Supabase PostgreSQL へ移行予定。
 
 ---
 
