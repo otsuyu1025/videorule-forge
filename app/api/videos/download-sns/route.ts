@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getDb, resetDbInstance } from '@/lib/db'
-import { compressVideoForOcr } from '@/lib/analysis/extractors/compress-video'
+import { compressVideoForOcr, getOriginalDimensions } from '@/lib/analysis/extractors/compress-video'
 import { v4 as uuidv4 } from 'uuid'
 import { mkdir, readdir } from 'fs/promises'
 import { execSync, spawn } from 'child_process'
@@ -133,6 +133,13 @@ export async function POST(request: NextRequest) {
       if (v) {
         if (downloaded) {
           const rawFilePath = path.join(downloadsDir, downloaded)
+
+          // 圧縮前に元の解像度を取得
+          const originalDims = await getOriginalDimensions(rawFilePath)
+          if (originalDims) {
+            v.originalWidth  = originalDims.width
+            v.originalHeight = originalDims.height
+          }
 
           // ダウンロード後に解像度を圧縮（OCR読み取り可能レベルまで下げる）
           const compressedFilePath = await compressVideoForOcr(rawFilePath)

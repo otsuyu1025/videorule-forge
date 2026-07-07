@@ -2,6 +2,23 @@ import ffmpeg from 'fluent-ffmpeg'
 import { rename, rm, stat } from 'fs/promises'
 import path from 'path'
 
+/** 圧縮前の元解像度を ffprobe で取得する */
+export async function getOriginalDimensions(
+  videoPath: string
+): Promise<{ width: number; height: number } | null> {
+  return new Promise(resolve => {
+    ffmpeg.ffprobe(videoPath, (err, meta) => {
+      if (err) { resolve(null); return }
+      const vs = meta.streams.find(s => s.codec_type === 'video')
+      if (vs?.width && vs?.height) {
+        resolve({ width: vs.width, height: vs.height })
+      } else {
+        resolve(null)
+      }
+    })
+  })
+}
+
 /**
  * 動画をOCR用解像度に圧縮して元ファイルと置き換える。
  * - 高さ VIDEO_OCR_MAX_HEIGHT px 以下にスケールダウン（アップスケールなし）

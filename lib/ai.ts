@@ -45,16 +45,26 @@ function logUsage(label: string, usage: Anthropic.Usage): void {
 
 /**
  * Stage 1（特徴抽出）の結果を人間が読みやすい文字列に変換する
- * Claude へ渡すプロンプトの構築に利用
+ * originalDims: 圧縮前の元解像度（ある場合は優先してルール判定に使う）
  */
-function buildFeatureDescription(feature: VideoFeature): string {
+function buildFeatureDescription(
+  feature: VideoFeature,
+  originalDims?: { width: number; height: number } | null
+): string {
   const lines: string[] = []
 
-  // メタ情報（Stage 1: ffprobe）
   if (feature.meta) {
     lines.push('【動画メタ情報】')
     lines.push(`・尺: ${feature.meta.duration}秒`)
-    lines.push(`・解像度: ${feature.meta.width}×${feature.meta.height}`)
+
+    // 元解像度がある場合は「元の解像度（ルール判定用）」として明示する
+    if (originalDims) {
+      lines.push(`・元の解像度（圧縮前・ルール判定用）: ${originalDims.width}×${originalDims.height}`)
+      lines.push(`・解析時解像度（圧縮後）: ${feature.meta.width}×${feature.meta.height}`)
+    } else {
+      lines.push(`・解像度: ${feature.meta.width}×${feature.meta.height}（※この値は圧縮後のものです）`)
+    }
+
     lines.push(`・FPS: ${feature.meta.fps}`)
     lines.push(`・コーデック: ${feature.meta.videoCodec}`)
     lines.push(`・ビットレート: ${feature.meta.bitrate}kbps`)
@@ -80,13 +90,14 @@ function buildFeatureDescription(feature: VideoFeature): string {
 
 export async function generateRuleCandidates(
   feature: VideoFeature,
-  guidelines: Array<{ title: string; content: string }>
+  guidelines: Array<{ title: string; content: string }>,
+  originalDims?: { width: number; height: number } | null
 ): Promise<Array<{ content: string; category: string; reason: string }>> {
   const guidelineText = guidelines.length > 0
     ? `\n\n【参照ガイドライン】\n${guidelines.map(g => `▼${g.title}\n${g.content}`).join('\n\n')}`
     : ''
 
-  const featureText = buildFeatureDescription(feature)
+  const featureText = buildFeatureDescription(feature, originalDims)
 
   const prompt = `あなたは動画制作の品質管理の専門家です。
 以下の動画特徴（OCR・音声文字起こし・メタ情報）をもとに、動画制作ルールの候補を提案してください。${guidelineText}
@@ -131,7 +142,8 @@ JSONで回答してください。3〜5個のルール候補を返してくだ�
 
 export async function inspectVideo(
   feature: VideoFeature,
-  rules: ProductionRule[]
+  rules: ProductionRule[],
+  originalDims?: { width: number; height: number } | null
 ): Promise<InspectionResult[]> {
   if (rules.length === 0) return []
 
@@ -139,7 +151,7 @@ export async function inspectVideo(
     `${i + 1}. [${r.id}] ${r.content}（カテゴリ: ${r.category}）`
   ).join('\n')
 
-  const featureText = buildFeatureDescription(feature)
+  const featureText = buildFeatureDescription(feature, originalDims)
 
   const prompt = `あなたは動画品質検査の専門家です。
 以下の動画特徴と動画制作ルールを照合し、各ルールの適合状況を判定してください。

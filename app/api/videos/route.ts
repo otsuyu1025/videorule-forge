@@ -3,7 +3,7 @@ import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { getDb } from '@/lib/db'
 import { v4 as uuidv4 } from 'uuid'
-import { compressVideoForOcr } from '@/lib/analysis/extractors/compress-video'
+import { compressVideoForOcr, getOriginalDimensions } from '@/lib/analysis/extractors/compress-video'
 import type { Video } from '@/types'
 
 export async function GET(request: NextRequest) {
@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
     const rawPath = path.join(uploadsDir, savedName)
     await writeFile(rawPath, Buffer.from(await file.arrayBuffer()))
 
+    // 圧縮前に元の解像度を取得
+    const originalDims = await getOriginalDimensions(rawPath)
+
     // アップロード後に解像度を圧縮（OCR読み取り可能レベルまで下げる）
     const compressedPath = await compressVideoForOcr(rawPath)
 
@@ -46,6 +49,7 @@ export async function POST(request: NextRequest) {
       type: typeField as Video['type'],
       filePath: compressedPath,
       status: 'pending',
+      ...(originalDims && { originalWidth: originalDims.width, originalHeight: originalDims.height }),
       createdAt: new Date().toISOString(),
     }
     db.data.videos.push(video)

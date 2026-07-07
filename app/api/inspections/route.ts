@@ -41,7 +41,10 @@ export async function POST(request: NextRequest) {
   await db.write()
 
   try {
-    const results = await inspectVideo(feature, rules)
+    const originalDims = (video.originalWidth && video.originalHeight)
+      ? { width: video.originalWidth, height: video.originalHeight }
+      : null
+    const results = await inspectVideo(feature, rules, originalDims)
     inspection.results = results
     inspection.status = 'completed'
     inspection.completedAt = new Date().toISOString()
