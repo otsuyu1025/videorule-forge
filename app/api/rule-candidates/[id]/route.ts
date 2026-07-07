@@ -39,3 +39,4 @@ export async function PUT(
   await db.write()
   return Response.json(candidate)
 }
+

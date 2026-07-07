@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { RuleCandidate } from '@/types'
 
-type FilterStatus = 'pending' | 'approved' | 'rejected'
+type FilterStatus = 'pending' | 'approved'
 
 function SourceTag({ candidate }: { candidate: RuleCandidate }) {
   if (!candidate.source) return null
@@ -212,7 +212,6 @@ export default function CandidatesPage() {
   const tabs = [
     { key: 'pending' as FilterStatus, label: '承認待ち' },
     { key: 'approved' as FilterStatus, label: '承認済み' },
-    { key: 'rejected' as FilterStatus, label: '却下' },
   ]
 
   return (
@@ -256,12 +255,10 @@ export default function CandidatesPage() {
       ) : candidates.length === 0 ? (
         <div style={{ background: '#E3F6F5', borderRadius: 14, padding: 48, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 14 }}>
-            {filter === 'pending' ? '💡' : filter === 'approved' ? '✅' : '🗑️'}
+            {filter === 'pending' ? '💡' : '✅'}
           </div>
           <div style={{ fontWeight: 700, fontSize: 17, color: '#272343', marginBottom: 8 }}>
-            {filter === 'pending' ? '承認待ちのルール候補はありません' :
-             filter === 'approved' ? 'まだ承認したルール候補がありません' :
-             '却下したルール候補はありません'}
+            {filter === 'pending' ? '承認待ちのルール候補はありません' : 'まだ承認したルール候補がありません'}
           </div>
           {filter === 'pending' && (
             <div style={{ fontSize: 14, color: '#2D334A', opacity: 0.8, lineHeight: 1.8 }}>
