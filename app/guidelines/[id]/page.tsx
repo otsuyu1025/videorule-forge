@@ -13,6 +13,7 @@ export default function GuidelineDetailPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [existingCount, setExistingCount] = useState<number | null>(null)
   const [analyzeError, setAnalyzeError] = useState('')
+  const [lastRunCount, setLastRunCount] = useState<number | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -42,6 +43,7 @@ export default function GuidelineDetailPage() {
         setAnalyzeError(data.error || 'ルール候補の生成に失敗しました')
       } else {
         const newCount = Array.isArray(data) ? data.length : 0
+        setLastRunCount(newCount)
         setExistingCount(prev => (prev ?? 0) + newCount)
       }
     } catch {
@@ -176,6 +178,17 @@ export default function GuidelineDetailPage() {
             <Link href="/production-rules/candidates" style={{ fontSize: 13, color: '#272343', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               ルール候補を確認 →
             </Link>
+          </div>
+        )}
+
+        {/* 直前の実行結果が0件 */}
+        {lastRunCount === 0 && !analyzing && (
+          <div style={{ fontSize: 13, color: '#e67e22', background: '#FFF8DC', border: '1px solid #FFD803', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+            ⚠️ 解析は完了しましたが、ルール候補が0件でした。<br />
+            考えられる原因：<br />
+            ・ ANTHROPIC_API_KEY が Railway に設定されていない<br />
+            ・ APIキーが無効または残高不足<br />
+            Railway の Variables タブで <code style={{ background: 'rgba(0,0,0,0.08)', padding: '1px 4px', borderRadius: 3 }}>ANTHROPIC_API_KEY</code> を確認してください。
           </div>
         )}
 
