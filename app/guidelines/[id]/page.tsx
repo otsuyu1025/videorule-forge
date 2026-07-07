@@ -10,6 +10,9 @@ export default function GuidelineDetailPage() {
   const router = useRouter()
   const [guideline, setGuideline] = useState<Guideline | null>(null)
   const [loading, setLoading] = useState(true)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeResult, setAnalyzeResult] = useState<{ count: number } | null>(null)
+  const [analyzeError, setAnalyzeError] = useState('')
 
   useEffect(() => {
     fetch('/api/guidelines')
@@ -27,6 +30,25 @@ export default function GuidelineDetailPage() {
     router.push('/guidelines')
   }
 
+  const handleAnalyze = async () => {
+    setAnalyzing(true)
+    setAnalyzeError('')
+    setAnalyzeResult(null)
+    try {
+      const res = await fetch(`/api/guidelines/${id}/candidates`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setAnalyzeError(data.error || 'ルール候補の生成に失敗しました')
+      } else {
+        setAnalyzeResult({ count: Array.isArray(data) ? data.length : 0 })
+      }
+    } catch {
+      setAnalyzeError('通信エラーが発生しました')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
   if (loading) return (
     <div style={{ padding: 48, color: '#2D334A', opacity: 0.6 }}>読み込み中...</div>
   )
@@ -39,6 +61,7 @@ export default function GuidelineDetailPage() {
   )
 
   const lines = guideline.content.split('\n')
+  const canAnalyze = !!guideline.content
 
   return (
     <div style={{ padding: 48, maxWidth: 760, margin: '0 auto' }}>
@@ -64,15 +87,9 @@ export default function GuidelineDetailPage() {
           <Link
             href={`/guidelines/${id}/edit`}
             style={{
-              background: '#FFD803',
-              color: '#272343',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 20px',
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: 'pointer',
-              textDecoration: 'none',
+              background: '#FFD803', color: '#272343', border: 'none',
+              borderRadius: 8, padding: '10px 20px', fontWeight: 700,
+              fontSize: 14, cursor: 'pointer', textDecoration: 'none',
             }}
           >
             編集する
@@ -80,13 +97,9 @@ export default function GuidelineDetailPage() {
           <button
             onClick={handleDelete}
             style={{
-              background: 'transparent',
-              color: '#ff6b6b',
-              border: '1px solid #ffd0d0',
-              borderRadius: 8,
-              padding: '10px 14px',
-              fontSize: 13,
-              cursor: 'pointer',
+              background: 'transparent', color: '#ff6b6b',
+              border: '1px solid #ffd0d0', borderRadius: 8,
+              padding: '10px 14px', fontSize: 13, cursor: 'pointer',
             }}
           >
             削除
@@ -94,35 +107,27 @@ export default function GuidelineDetailPage() {
         </div>
       </div>
 
+      {/* ガイドライン本文 */}
       <div style={{
-        background: '#fff',
-        border: '1px solid #E3F6F5',
-        borderRadius: 16,
-        padding: '36px 40px',
-        lineHeight: 1.9,
+        background: '#fff', border: '1px solid #E3F6F5',
+        borderRadius: 16, padding: '36px 40px', lineHeight: 1.9,
       }}>
         {lines.map((line, i) => {
           if (line.trim() === '') return <div key={i} style={{ height: 12 }} />
-
           const isBullet = /^[・•\-]/.test(line.trim())
           const isHeading = /^#+\s/.test(line.trim()) || (line.trim().endsWith('：') || line.trim().endsWith(':'))
 
           if (isHeading && !isBullet) {
             return (
               <div key={i} style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: '#272343',
-                marginTop: i > 0 ? 24 : 0,
-                marginBottom: 8,
-                paddingBottom: 6,
-                borderBottom: '1px solid #E3F6F5',
+                fontSize: 14, fontWeight: 700, color: '#272343',
+                marginTop: i > 0 ? 24 : 0, marginBottom: 8,
+                paddingBottom: 6, borderBottom: '1px solid #E3F6F5',
               }}>
                 {line}
               </div>
             )
           }
-
           if (isBullet) {
             return (
               <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
@@ -131,31 +136,60 @@ export default function GuidelineDetailPage() {
               </div>
             )
           }
-
           return (
-            <p key={i} style={{
-              fontSize: 15,
-              color: '#2D334A',
-              margin: 0,
-              marginBottom: 4,
-            }}>
+            <p key={i} style={{ fontSize: 15, color: '#2D334A', margin: 0, marginBottom: 4 }}>
               {line}
             </p>
           )
         })}
       </div>
 
+      {/* ルール候補を生成セクション */}
       <div style={{
-        marginTop: 24,
-        padding: '16px 20px',
-        background: '#F5FCFC',
-        borderRadius: 10,
-        fontSize: 13,
-        color: '#2D334A',
-        opacity: 0.75,
-        lineHeight: 1.6,
+        marginTop: 32, background: '#fff',
+        border: '1px solid #E3F6F5', borderRadius: 14, padding: '28px 32px',
       }}>
-        💡 このガイドラインは、お手本動画を解析するたびにAIへ自動的に送信されます。
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 8 }}>
+          このガイドラインからルール候補を生成
+        </div>
+        <p style={{ fontSize: 14, color: '#2D334A', lineHeight: 1.7, marginTop: 0, marginBottom: 20 }}>
+          AIがガイドライン文書を解析し、動画制作ルールの候補を自動抽出します。<br />
+          生成された候補は「ルール候補」画面で確認・承認できます。
+        </p>
+
+        {!canAnalyze && (
+          <div style={{ fontSize: 13, color: '#e67e22', background: '#FFF8DC', border: '1px solid #FFD803', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+            ⚠️ テキスト内容を読み込めていません。.txt ファイルのみ自動解析できます。
+          </div>
+        )}
+
+        {analyzeResult && (
+          <div style={{ fontSize: 13, color: '#27ae60', background: '#F0FFF4', border: '1px solid #BAE8E8', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+            ✓ {analyzeResult.count}件のルール候補を生成しました。
+            <Link href="/production-rules/candidates" style={{ marginLeft: 12, color: '#272343', fontWeight: 700, textDecoration: 'none' }}>
+              ルール候補を確認 →
+            </Link>
+          </div>
+        )}
+
+        {analyzeError && (
+          <div style={{ fontSize: 13, color: '#c0392b', background: '#fff0f0', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+            {analyzeError}
+          </div>
+        )}
+
+        <button
+          onClick={handleAnalyze}
+          disabled={analyzing || !canAnalyze}
+          style={{
+            background: analyzing || !canAnalyze ? '#ccc' : '#272343',
+            color: '#FFD803', border: 'none', borderRadius: 8,
+            padding: '12px 28px', fontWeight: 700, fontSize: 14,
+            cursor: analyzing || !canAnalyze ? 'default' : 'pointer',
+          }}
+        >
+          {analyzing ? '⏳ 解析中...' : '✨ ルール候補を生成する'}
+        </button>
       </div>
     </div>
   )
