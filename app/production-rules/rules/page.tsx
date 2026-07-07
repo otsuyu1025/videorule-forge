@@ -46,6 +46,9 @@ export default function RulesPage() {
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ content: '', category: '', reason: '' })
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addForm, setAddForm] = useState({ content: '', category: '', reason: '' })
+  const [adding, setAdding] = useState(false)
 
   const fetchRules = () => {
     fetch('/api/production-rules')
@@ -67,6 +70,20 @@ export default function RulesPage() {
       body: JSON.stringify(editForm),
     })
     setEditingId(null)
+    fetchRules()
+  }
+
+  const handleAdd = async () => {
+    if (!addForm.content.trim() || !addForm.category.trim()) return
+    setAdding(true)
+    await fetch('/api/production-rules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: addForm.content.trim(), category: addForm.category.trim(), reason: addForm.reason.trim() }),
+    })
+    setAdding(false)
+    setShowAddForm(false)
+    setAddForm({ content: '', category: '', reason: '' })
     fetchRules()
   }
 
@@ -152,21 +169,78 @@ export default function RulesPage() {
           )}
         </div>
         <button
-          onClick={() => {
-            const content = prompt('ルールの内容を入力してください')
-            if (!content) return
-            const category = prompt('カテゴリを入力してください（例: ブランドカラー）') || 'その他'
-            fetch('/api/production-rules', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content, category, reason: '' }),
-            }).then(() => fetchRules())
-          }}
-          style={{ background: '#FFD803', color: '#272343', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          onClick={() => { setShowAddForm(v => !v); setAddForm({ content: '', category: '', reason: '' }) }}
+          style={{ background: showAddForm ? '#E3F6F5' : '#FFD803', color: '#272343', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
-          + 手動で追加
+          {showAddForm ? '✕ キャンセル' : '+ 手動で追加'}
         </button>
       </div>
+
+      {/* 手動追加フォーム */}
+      {showAddForm && (
+        <div style={{ background: '#fff', border: '1px solid #BAE8E8', borderRadius: 12, padding: '24px 28px', marginBottom: 28 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#272343', marginBottom: 18 }}>ルールを手動で追加</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#272343', marginBottom: 6 }}>
+                ルール内容 <span style={{ color: '#e74c3c' }}>*</span>
+              </label>
+              <textarea
+                value={addForm.content}
+                onChange={e => setAddForm({ ...addForm, content: e.target.value })}
+                rows={3}
+                placeholder="例: ロゴは画面右下または左下に配置し、サイズは画面幅の8〜12%とする"
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E3F6F5', fontSize: 14, color: '#272343', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.6, outline: 'none' }}
+                onFocus={e => { e.target.style.borderColor = '#BAE8E8' }}
+                onBlur={e => { e.target.style.borderColor = '#E3F6F5' }}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#272343', marginBottom: 6 }}>
+                  カテゴリ <span style={{ color: '#e74c3c' }}>*</span>
+                </label>
+                <input
+                  value={addForm.category}
+                  onChange={e => setAddForm({ ...addForm, category: e.target.value })}
+                  placeholder="例: ブランドカラー"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E3F6F5', fontSize: 14, color: '#272343', boxSizing: 'border-box', outline: 'none' }}
+                  onFocus={e => { e.target.style.borderColor = '#BAE8E8' }}
+                  onBlur={e => { e.target.style.borderColor = '#E3F6F5' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#272343', marginBottom: 6 }}>
+                  理由（任意）
+                </label>
+                <input
+                  value={addForm.reason}
+                  onChange={e => setAddForm({ ...addForm, reason: e.target.value })}
+                  placeholder="このルールを設けた根拠"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E3F6F5', fontSize: 14, color: '#272343', boxSizing: 'border-box', outline: 'none' }}
+                  onFocus={e => { e.target.style.borderColor = '#BAE8E8' }}
+                  onBlur={e => { e.target.style.borderColor = '#E3F6F5' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={handleAdd}
+                disabled={adding || !addForm.content.trim() || !addForm.category.trim()}
+                style={{ background: adding || !addForm.content.trim() || !addForm.category.trim() ? '#ccc' : '#272343', color: '#FFD803', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, fontSize: 14, cursor: adding ? 'default' : 'pointer' }}
+              >
+                {adding ? '追加中...' : '追加する'}
+              </button>
+              <button
+                onClick={() => setShowAddForm(false)}
+                style={{ background: 'transparent', color: '#999', border: '1px solid #ddd', borderRadius: 8, padding: '10px 18px', fontSize: 14, cursor: 'pointer' }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginBottom: 28 }}>
         <input
