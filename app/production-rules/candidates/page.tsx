@@ -23,16 +23,37 @@ function SourceTag({ candidate }: { candidate: RuleCandidate }) {
 }
 
 function CandidateCard({
-  candidate, onAction,
+  candidate, onAction, onEdit,
 }: {
   candidate: RuleCandidate
   onAction: (id: string, status: 'approved' | 'rejected') => Promise<void>
+  onEdit: (id: string, content: string, category: string, reason: string) => Promise<void>
 }) {
   const [acting, setActing] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editContent, setEditContent] = useState(candidate.content)
+  const [editCategory, setEditCategory] = useState(candidate.category)
+  const [editReason, setEditReason] = useState(candidate.reason)
 
   const act = async (status: 'approved' | 'rejected') => {
     setActing(true)
     await onAction(candidate.id, status)
+  }
+
+  const startEdit = () => {
+    setEditContent(candidate.content)
+    setEditCategory(candidate.category)
+    setEditReason(candidate.reason)
+    setEditing(true)
+  }
+
+  const saveEdit = async () => {
+    if (!editContent.trim()) return
+    setSaving(true)
+    await onEdit(candidate.id, editContent.trim(), editCategory.trim(), editReason.trim())
+    setSaving(false)
+    setEditing(false)
   }
 
   const statusStyle: Record<string, React.CSSProperties> = {
@@ -41,57 +62,117 @@ function CandidateCard({
     rejected: { border: '1px solid #ffd0d0', background: '#FFF8F8' },
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '8px 12px', borderRadius: 7, fontSize: 14,
+    border: '1px solid #BAE8E8', color: '#272343', fontFamily: 'inherit',
+    boxSizing: 'border-box', outline: 'none',
+  }
+
   return (
     <div style={{ borderRadius: 12, padding: '20px 24px', ...statusStyle[candidate.approvalStatus] }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{
-              fontSize: 11, fontWeight: 700, background: '#272343',
-              color: '#FFD803', padding: '2px 8px', borderRadius: 4,
-            }}>
-              {candidate.category}
-            </span>
-            <SourceTag candidate={candidate} />
+      {editing ? (
+        /* ── 編集モード ───────────────────────────── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#272343', display: 'block', marginBottom: 4 }}>カテゴリ</label>
+            <input
+              value={editCategory}
+              onChange={e => setEditCategory(e.target.value)}
+              style={{ ...inputStyle, width: 220 }}
+              placeholder="例: ブランドカラー"
+            />
           </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#272343', lineHeight: 1.6, marginBottom: 6 }}>
-            {candidate.content}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#272343', display: 'block', marginBottom: 4 }}>ルール内容 <span style={{ color: '#e74c3c' }}>*</span></label>
+            <textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              rows={4}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
+            />
           </div>
-          <div style={{ fontSize: 13, color: '#2D334A', opacity: 0.75, lineHeight: 1.5 }}>
-            根拠: {candidate.reason}
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#272343', display: 'block', marginBottom: 4 }}>根拠</label>
+            <input
+              value={editReason}
+              onChange={e => setEditReason(e.target.value)}
+              style={inputStyle}
+              placeholder="このルールの根拠"
+            />
           </div>
-          <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 8 }}>
-            {new Date(candidate.createdAt).toLocaleDateString('ja-JP')}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={saveEdit}
+              disabled={saving || !editContent.trim()}
+              style={{ background: saving || !editContent.trim() ? '#ccc' : '#272343', color: '#FFD803', border: 'none', borderRadius: 7, padding: '9px 20px', fontWeight: 700, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}
+            >
+              {saving ? '保存中...' : '✓ 確定する'}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              disabled={saving}
+              style={{ background: '#fff', color: '#999', border: '1px solid #ddd', borderRadius: 7, padding: '9px 16px', fontSize: 13, cursor: 'pointer' }}
+            >
+              キャンセル
+            </button>
           </div>
         </div>
-
-        <div style={{ marginLeft: 20, flexShrink: 0 }}>
-          {candidate.approvalStatus === 'pending' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <button
-                onClick={() => act('approved')}
-                disabled={acting}
-                style={{ background: '#272343', color: '#FFD803', border: 'none', borderRadius: 7, padding: '8px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >
-                ✓ 承認する
-              </button>
-              <button
-                onClick={() => act('rejected')}
-                disabled={acting}
-                style={{ background: '#fff', color: '#999', border: '1px solid #ddd', borderRadius: 7, padding: '8px 18px', fontSize: 13, cursor: 'pointer' }}
-              >
-                却下
-              </button>
+      ) : (
+        /* ── 表示モード ───────────────────────────── */
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, background: '#272343', color: '#FFD803', padding: '2px 8px', borderRadius: 4 }}>
+                {candidate.category}
+              </span>
+              <SourceTag candidate={candidate} />
             </div>
-          )}
-          {candidate.approvalStatus === 'approved' && (
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#27ae60' }}>✓ 承認済み</span>
-          )}
-          {candidate.approvalStatus === 'rejected' && (
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#e74c3c' }}>✗ 却下</span>
-          )}
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#272343', lineHeight: 1.6, marginBottom: 6 }}>
+              {candidate.content}
+            </div>
+            <div style={{ fontSize: 13, color: '#2D334A', opacity: 0.75, lineHeight: 1.5 }}>
+              根拠: {candidate.reason}
+            </div>
+            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 8 }}>
+              {new Date(candidate.createdAt).toLocaleDateString('ja-JP')}
+            </div>
+          </div>
+
+          <div style={{ marginLeft: 20, flexShrink: 0 }}>
+            {candidate.approvalStatus === 'pending' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  onClick={() => act('approved')}
+                  disabled={acting}
+                  style={{ background: '#272343', color: '#FFD803', border: 'none', borderRadius: 7, padding: '8px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  ✓ 承認する
+                </button>
+                <button
+                  onClick={startEdit}
+                  disabled={acting}
+                  style={{ background: '#fff', color: '#272343', border: '1px solid #272343', borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  ✏️ 編集
+                </button>
+                <button
+                  onClick={() => act('rejected')}
+                  disabled={acting}
+                  style={{ background: '#fff', color: '#999', border: '1px solid #ddd', borderRadius: 7, padding: '8px 18px', fontSize: 13, cursor: 'pointer' }}
+                >
+                  却下
+                </button>
+              </div>
+            )}
+            {candidate.approvalStatus === 'approved' && (
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#27ae60' }}>✓ 承認済み</span>
+            )}
+            {candidate.approvalStatus === 'rejected' && (
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#e74c3c' }}>✗ 却下</span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -115,6 +196,15 @@ export default function CandidatesPage() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ approvalStatus: status }),
+    })
+    fetchCandidates()
+  }
+
+  const handleEdit = async (id: string, content: string, category: string, reason: string) => {
+    await fetch(`/api/rule-candidates/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, category, reason }),
     })
     fetchCandidates()
   }
@@ -186,7 +276,7 @@ export default function CandidatesPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {candidates.map(c => (
-            <CandidateCard key={c.id} candidate={c} onAction={handleAction} />
+            <CandidateCard key={c.id} candidate={c} onAction={handleAction} onEdit={handleEdit} />
           ))}
         </div>
       )}

@@ -16,8 +16,9 @@ export async function PUT(
 
   const prevStatus = candidate.approvalStatus
   candidate.approvalStatus = body.approvalStatus ?? candidate.approvalStatus
-  if (body.content) candidate.content = body.content
-  if (body.reason) candidate.reason = body.reason
+  if (body.content)   candidate.content  = body.content
+  if (body.category)  candidate.category = body.category
+  if (body.reason)    candidate.reason   = body.reason
   candidate.reviewedAt = new Date().toISOString()
 
   if (candidate.approvalStatus === 'approved' && prevStatus !== 'approved') {
