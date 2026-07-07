@@ -278,7 +278,7 @@ export default function InspectionsPage() {
     }
   }
 
-  const handleDelete = async (e: React.MouseEvent, inspectionId: string, isStuck: boolean) => {
+  const handleDelete = async (e: { stopPropagation(): void }, inspectionId: string, isStuck: boolean) => {
     e.stopPropagation()
     const msg = isStuck
       ? '検証中のまま止まっている検品を削除しますか？'
