@@ -17,8 +17,10 @@ const RETENTION_OPTIONS = [7, 14, 30, 60, 90]
 export default function SettingsPage() {
   const [snsBrowser, setSnsBrowser] = useState<SnsBrowser | ''>('')
   const [frameRetentionDays, setFrameRetentionDays] = useState(30)
+  const [rejectedRetentionDays, setRejectedRetentionDays] = useState(30)
   const [browserSaved, setBrowserSaved] = useState(false)
   const [retentionSaved, setRetentionSaved] = useState(false)
+  const [rejectedRetentionSaved, setRejectedRetentionSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [snsEnabled, setSnsEnabled] = useState(false)
 
@@ -29,6 +31,7 @@ export default function SettingsPage() {
     ]).then(([settings, features]) => {
       setSnsBrowser(settings.snsBrowser ?? '')
       setFrameRetentionDays(settings.frameRetentionDays ?? 30)
+      setRejectedRetentionDays(settings.rejectedCandidateRetentionDays ?? 30)
       setSnsEnabled(features.snsDownload === true)
       setLoading(false)
     })
@@ -56,6 +59,14 @@ export default function SettingsPage() {
     saveSetting({ frameRetentionDays: days }, () => {
       setRetentionSaved(true)
       setTimeout(() => setRetentionSaved(false), 2000)
+    })
+  }
+
+  const saveRejectedRetention = (days: number) => {
+    setRejectedRetentionDays(days)
+    saveSetting({ rejectedCandidateRetentionDays: days }, () => {
+      setRejectedRetentionSaved(true)
+      setTimeout(() => setRejectedRetentionSaved(false), 2000)
     })
   }
 
@@ -179,6 +190,49 @@ export default function SettingsPage() {
             <div style={{ marginTop: 14, fontSize: 12, color: '#999', lineHeight: 1.7 }}>
               現在の設定: <strong style={{ color: '#272343' }}>{frameRetentionDays}日</strong>後に自動削除<br />
               ※ Cloudflare R2 が設定されていない場合、この設定はローカルストレージには影響しません。
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* 却下済みルール候補の保持期間 */}
+      <section style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 12, padding: 28, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', marginTop: 0, marginBottom: 6 }}>
+          却下済みルール候補の保持期間
+        </h2>
+        <p style={{ fontSize: 14, color: '#2D334A', marginBottom: 20, lineHeight: 1.7 }}>
+          却下したルール候補を何日間保持するかを設定します。<br />
+          期限を過ぎた候補はルール候補一覧を開くたびに自動削除されます。
+        </p>
+
+        {loading ? (
+          <div style={{ color: '#999', fontSize: 14 }}>読み込み中...</div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {RETENTION_OPTIONS.map(days => (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() => saveRejectedRetention(days)}
+                  style={{
+                    padding: '10px 20px', borderRadius: 8,
+                    border: `2px solid ${rejectedRetentionDays === days ? '#272343' : '#E3F6F5'}`,
+                    background: rejectedRetentionDays === days ? '#272343' : '#fff',
+                    color: rejectedRetentionDays === days ? '#FFD803' : '#272343',
+                    fontWeight: rejectedRetentionDays === days ? 700 : 400,
+                    fontSize: 14, cursor: 'pointer', transition: 'all 0.1s',
+                  }}
+                >
+                  {days}日
+                </button>
+              ))}
+            </div>
+            {rejectedRetentionSaved && (
+              <div style={{ fontSize: 13, color: '#27ae60', fontWeight: 600, marginTop: 12 }}>✓ 保存しました</div>
+            )}
+            <div style={{ marginTop: 14, fontSize: 12, color: '#999', lineHeight: 1.7 }}>
+              現在の設定: <strong style={{ color: '#272343' }}>{rejectedRetentionDays}日</strong>後に自動削除
             </div>
           </>
         )}
