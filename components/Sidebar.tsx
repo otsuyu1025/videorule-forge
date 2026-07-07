@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { useSession, signOut } from 'next-auth/react'
 
 const navItems = [
   { href: '/', label: 'ダッシュボード', icon: '🏠' },
@@ -21,6 +22,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const { data: session } = useSession()
 
   // 画面幅の監視
   useEffect(() => {
@@ -146,13 +148,38 @@ export default function Sidebar() {
         </Link>
       </div>
 
+      {/* ユーザー情報・ログアウト */}
       <div style={{
-        padding: '16px 20px',
+        padding: '12px 16px',
         borderTop: '1px solid rgba(255,255,255,0.1)',
-        color: 'rgba(255,255,255,0.3)',
-        fontSize: 11,
       }}>
-        VideoRule Forge v1.0
+        {session?.user && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>ログイン中</div>
+            <div style={{
+              fontSize: 12, color: 'rgba(255,255,255,0.75)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {session.user.email}
+            </div>
+          </div>
+        )}
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          style={{
+            width: '100%',
+            padding: '7px 12px',
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 6,
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 12,
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          ログアウト
+        </button>
       </div>
     </nav>
   )
