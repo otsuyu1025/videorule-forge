@@ -202,6 +202,64 @@ function buildVisionContent(
   return content
 }
 
+/**
+ * フレーム画像から Vision で正確なテキストを抽出し、Tesseract の文字化けを上書きする。
+ * 失敗時は元の frames をそのまま返す（Tesseract 結果を維持）。
+ */
+export async function extractFrameTexts(frames: FrameData[]): Promise<FrameData[]> {
+  if (!frames || frames.length === 0) return frames
+
+  const framesWithImages = frames.map(f => {
+    let base64: string | null = null
+    if (f.imagePath && existsSync(f.imagePath)) {
+      try { base64 = readFileSync(f.imagePath).toString('base64') } catch { /* ignore */ }
+    }
+    return { ...f, base64 }
+  })
+
+  const available = framesWithImages.filter(f => f.base64 !== null)
+  if (available.length === 0) return frames
+
+  const content: Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam> = [
+    {
+      type: 'text',
+      text: '各フレーム画像に表示されているテキスト（テロップ・字幕・ロゴ文字など）を正確に読み取ってください。テキストがない場合は空文字にしてください。\n\nJSON形式で回答:\n{"frames":[{"timestamp":<秒数>,"text":"<検出テキスト>"}]}',
+    },
+  ]
+  for (const f of available) {
+    content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.base64! } })
+    content.push({ type: 'text', text: `↑ ${f.timestamp}秒時点` })
+  }
+
+  try {
+    const message = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      messages: [{ role: 'user', content }],
+    })
+    logUsage('Vision OCR', message.usage)
+
+    const raw = message.content[0].type === 'text' ? message.content[0].text : ''
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return frames
+
+    const parsed = JSON.parse(jsonMatch[0])
+    const textMap: Record<number, string> = {}
+    for (const f of (parsed.frames || [])) textMap[f.timestamp] = f.text ?? ''
+
+    const corrected = frames.map(f => ({
+      ...f,
+      ocrText: textMap[f.timestamp] !== undefined ? textMap[f.timestamp] : f.ocrText,
+    }))
+    const detected = corrected.filter(f => f.ocrText.length > 0).length
+    console.log(`[VisionOCR] テキスト修正完了: ${detected}/${frames.length}枚`)
+    return corrected
+  } catch (e) {
+    console.error('[VisionOCR] 失敗（Tesseract 結果を維持）:', e instanceof Error ? e.message : e)
+    return frames
+  }
+}
+
 export async function generateRuleCandidates(
   feature: VideoFeature,
   guidelines: Array<{ title: string; content: string }>,

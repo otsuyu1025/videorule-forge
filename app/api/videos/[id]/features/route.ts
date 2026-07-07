@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getDb } from '@/lib/db'
 import { analyzeVideo } from '@/lib/analysis/pipeline'
-import { generateRuleCandidates } from '@/lib/ai'
+import { generateRuleCandidates, extractFrameTexts } from '@/lib/ai'
 import { v4 as uuidv4 } from 'uuid'
 import type { VideoFeature, RuleCandidate, Source, VideoStatus } from '@/types'
 
@@ -122,6 +122,11 @@ export async function POST(
         video.status = status
         await db.write()
       })
+
+      // Tesseract の文字化けを Vision OCR で修正（失敗時は Tesseract 結果を維持）
+      const correctedFrames = await extractFrameTexts(extracted.frames).catch(() => extracted.frames)
+      extracted.frames = correctedFrames
+      extracted.ocrTexts = [...new Set(correctedFrames.map(f => f.ocrText).filter(t => t.length > 0))]
 
       // ── Stage 1 完了後、即座に保存（Stage 2 が失敗しても再開できるように）──
       const featureData: Omit<VideoFeature, 'id' | 'videoId' | 'createdAt'> = {
