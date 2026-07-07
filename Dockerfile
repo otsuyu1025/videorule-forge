@@ -1,7 +1,8 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NODE_ENV=production
+# NODE_ENV=production はビルド後に設定する
+# （先に設定すると npm ci が devDependencies をスキップしてしまう）
 
 # ── システム依存パッケージ ──────────────────────────────────────────────
 RUN apt-get update && apt-get install -y \
@@ -37,6 +38,9 @@ RUN npm run build
 
 # ビルド後に devDependencies を削除してイメージを軽量化
 RUN npm prune --omit=dev
+
+# ビルド完了後に本番環境変数を設定
+ENV NODE_ENV=production
 
 # ── データディレクトリ ───────────────────────────────────────────────────
 RUN mkdir -p data/uploads data/frames data/logs data/tessdata
