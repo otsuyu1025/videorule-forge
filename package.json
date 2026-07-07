@@ -6,7 +6,7 @@
     "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --webpack",
     "dev:log": "NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --webpack 2>&1 | tee data/dev.log",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "eslint"
   },
   "dependencies": {

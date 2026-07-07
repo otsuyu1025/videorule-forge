@@ -37,6 +37,6 @@ RUN npm run build
 # ── データディレクトリ ───────────────────────────────────────────────────
 RUN mkdir -p data/uploads data/frames data/logs data/tessdata
 
-EXPOSE 3000
+EXPOSE ${PORT:-3000}
 
 CMD ["npm", "start"]
