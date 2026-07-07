@@ -149,16 +149,16 @@ export default function SourcesNewPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {[
             {
+              key: 'guideline' as SourceKind,
+              icon: '📁',
+              title: 'ガイドラインをアップロード',
+              desc: 'デザインガイドラインやコンプライアンスルールなど、自社の制作基準となる文書をアップロードしてください。AIがルール候補の生成に活用します。',
+            },
+            {
               key: 'sampleVideo' as SourceKind,
               icon: '🎬',
               title: 'お手本動画を登録',
               desc: 'AIが動画を解析してルール候補を生成します。',
-            },
-            {
-              key: 'guideline' as SourceKind,
-              icon: '📁',
-              title: 'ガイドラインをアップロード',
-              desc: 'PDF・Word・テキストなどのガイドライン文書をアップロードします。',
             },
           ].map(opt => (
             <button

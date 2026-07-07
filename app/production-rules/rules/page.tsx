@@ -97,7 +97,9 @@ export default function RulesPage() {
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>ルール管理</h1>
           <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
             正式に採用された動画制作ルールです。<br />
-            {rules.length > 0 && <span style={{ fontWeight: 700, color: '#272343' }}>{rules.length} 件</span>} のルールが登録されています。
+            {rules.length > 0
+              ? <><span style={{ fontWeight: 700, color: '#272343' }}>{rules.length}件</span>のルールが登録されています。</>
+              : 'まだルールは登録されていません。'}
           </p>
         </div>
         <button

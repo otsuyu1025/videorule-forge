@@ -95,7 +95,7 @@ export default function SourcesPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
-        {(['all', 'sampleVideo', 'guideline'] as FilterType[]).map(f => (
+        {(['all', 'guideline', 'sampleVideo'] as FilterType[]).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
             border: filter === f ? '2px solid #272343' : '1px solid #BAE8E8',
