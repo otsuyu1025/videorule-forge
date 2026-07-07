@@ -14,6 +14,13 @@ export async function PUT(
   const candidate = db.data.ruleCandidates.find(c => c.id === id)
   if (!candidate) return Response.json({ error: 'ルール候補が見つかりません' }, { status: 404 })
 
+  // 却下はDBから即削除
+  if (body.approvalStatus === 'rejected') {
+    db.data.ruleCandidates = db.data.ruleCandidates.filter(c => c.id !== id)
+    await db.write()
+    return Response.json({ ok: true })
+  }
+
   const prevStatus = candidate.approvalStatus
   candidate.approvalStatus = body.approvalStatus ?? candidate.approvalStatus
   if (body.content)   candidate.content  = body.content

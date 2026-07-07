@@ -161,8 +161,7 @@ export type SnsBrowser = 'chrome' | 'firefox' | 'safari' | 'edge' | 'brave' | 'c
 
 export interface AppSettings {
   snsBrowser?: SnsBrowser
-  frameRetentionDays?: number             // フレーム画像の保持日数（デフォルト30日）
-  rejectedCandidateRetentionDays?: number // 却下済みルール候補の保持日数（デフォルト30日）
+  frameRetentionDays?: number  // フレーム画像の保持日数（デフォルト30日）
 }
 
 export interface DbSchema {
