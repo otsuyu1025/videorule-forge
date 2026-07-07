@@ -1,10 +1,16 @@
 import { NextRequest } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
+import { mkdir } from 'fs/promises'
+import { createWriteStream } from 'fs'
+import { Readable } from 'stream'
+import { pipeline } from 'stream/promises'
 import path from 'path'
 import { getDb } from '@/lib/db'
 import { v4 as uuidv4 } from 'uuid'
 import { compressVideoForOcr, getOriginalDimensions } from '@/lib/analysis/extractors/compress-video'
 import type { Video } from '@/types'
+
+const MAX_FILE_SIZE_MB = parseInt(process.env.MAX_VIDEO_SIZE_MB || '200')
+const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024
 
 export async function GET(request: NextRequest) {
   const db = await getDb()
@@ -30,13 +36,24 @@ export async function POST(request: NextRequest) {
 
     if (!file) return Response.json({ error: 'ファイルが選択されていません' }, { status: 400 })
 
+    if (file.size > MAX_FILE_SIZE) {
+      return Response.json({
+        error: `ファイルサイズが大きすぎます（${Math.round(file.size / 1024 / 1024)}MB）。上限は${MAX_FILE_SIZE_MB}MBです。動画を短くするか解像度を下げてください。`
+      }, { status: 413 })
+    }
+
     try {
       const uploadsDir = path.join(process.cwd(), 'data', 'uploads', 'videos')
       await mkdir(uploadsDir, { recursive: true })
       const videoId = uuidv4()
       const savedName = `${videoId}-${file.name}`
       const rawPath = path.join(uploadsDir, savedName)
-      await writeFile(rawPath, Buffer.from(await file.arrayBuffer()))
+
+      // arrayBuffer() の Buffer コピーを避けてストリームで書き込み（メモリ節約）
+      await pipeline(
+        Readable.fromWeb(file.stream() as Parameters<typeof Readable.fromWeb>[0]),
+        createWriteStream(rawPath)
+      )
 
       // 圧縮前に元の解像度を取得
       const originalDims = await getOriginalDimensions(rawPath)

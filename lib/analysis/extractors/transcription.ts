@@ -17,21 +17,32 @@ type Transcriber = (
   chunks?: Array<{ timestamp: [number | null, number | null]; text: string }>
 }>
 
+// DISABLE_TRANSCRIPTION=true で Whisper を完全にスキップ（Railway などメモリ制約環境向け）
+const TRANSCRIPTION_DISABLED = process.env.DISABLE_TRANSCRIPTION === 'true'
+
+// WHISPER_MODEL で使用するモデルを切り替え可能
+// whisper-tiny: ~39MB, whisper-small: ~244MB (デフォルト)
+const WHISPER_MODEL = process.env.WHISPER_MODEL || 'Xenova/whisper-small'
+
 let _transcriber: Transcriber | null = null
 let _transcriberUnavailable = false
 
 async function getTranscriber(): Promise<Transcriber | null> {
+  if (TRANSCRIPTION_DISABLED) {
+    console.log('[Whisper] DISABLE_TRANSCRIPTION=true のためスキップします')
+    return null
+  }
   if (_transcriberUnavailable) return null
   if (_transcriber) return _transcriber
 
-  console.log('[Whisper] モデルをロード中... (初回は最大244MBのダウンロードが発生します)')
+  console.log(`[Whisper] モデルをロード中: ${WHISPER_MODEL} (初回は最大244MBのダウンロードが発生します)`)
 
   try {
     const { pipeline } = await import('@xenova/transformers')
 
     _transcriber = await pipeline(
       'automatic-speech-recognition',
-      'Xenova/whisper-small',
+      WHISPER_MODEL,
       { quantized: true },
     ) as unknown as Transcriber
 
