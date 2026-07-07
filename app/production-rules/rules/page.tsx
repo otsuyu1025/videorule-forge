@@ -138,7 +138,8 @@ export default function RulesPage() {
               {/* 警告メッセージ */}
               {isOver && (
                 <div style={{ marginTop: 8, fontSize: 12, color: '#e74c3c', lineHeight: 1.6 }}>
-                  ⚠️ 文字数上限が超えています。ルールの文字数を減らしてください。
+                  ⚠️ ルール文字数の上限超過<br />
+                  不要なルールを削除するか、ルール文を短くしてください。検品時にルールが途中で切れ、正確に判定されない可能性があります。
                 </div>
               )}
               {isWarn && (
