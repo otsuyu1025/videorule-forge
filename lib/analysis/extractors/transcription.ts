@@ -54,7 +54,10 @@ async function getTranscriber(): Promise<Transcriber | null> {
       return null
     }
 
-    throw e
+    // その他のエラー（ネットワーク、メモリ不足など）も音声文字起こしをスキップ
+    _transcriberUnavailable = true
+    console.error('[Whisper] モデルのロードに失敗しました。音声文字起こしをスキップします:', msg)
+    return null
   }
 }
 

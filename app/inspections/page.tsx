@@ -96,14 +96,26 @@ export default function InspectionsPage() {
           body: JSON.stringify({ title: form.title, type: 'inspection', url: form.url }),
         })
       }
+      if (!videoRes.ok) {
+        const body = await videoRes.json().catch(() => ({})) as Record<string, unknown>
+        throw new Error(
+          (typeof body.error === 'string' && body.error) ||
+          (typeof body.message === 'string' && body.message) ||
+          '動画の登録に失敗しました'
+        )
+      }
       const video = await videoRes.json()
       const videoTitle = video.title
 
       setStep('analyzing')
       const featureRes = await fetch(`/api/videos/${video.id}/features`, { method: 'POST' })
       if (!featureRes.ok) {
-        const err = await featureRes.json()
-        throw new Error(err.error || '動画の解析に失敗しました')
+        const body = await featureRes.json().catch(() => ({})) as Record<string, unknown>
+        throw new Error(
+          (typeof body.error === 'string' && body.error) ||
+          (typeof body.message === 'string' && body.message) ||
+          '動画の解析に失敗しました'
+        )
       }
 
       setStep('inspecting')
@@ -113,8 +125,12 @@ export default function InspectionsPage() {
         body: JSON.stringify({ videoId: video.id }),
       })
       if (!inspectionRes.ok) {
-        const err = await inspectionRes.json()
-        throw new Error(err.error || '検品に失敗しました')
+        const body = await inspectionRes.json().catch(() => ({})) as Record<string, unknown>
+        throw new Error(
+          (typeof body.error === 'string' && body.error) ||
+          (typeof body.message === 'string' && body.message) ||
+          '検品に失敗しました'
+        )
       }
 
       const { inspection } = await inspectionRes.json()
