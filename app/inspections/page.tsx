@@ -153,6 +153,7 @@ export default function InspectionsPage() {
   const [latestFrames, setLatestFrames] = useState<FrameData[]>([])
   const [history, setHistory] = useState<Array<{ inspection: VideoInspection; videoTitle: string }>>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [framesByVideoId, setFramesByVideoId] = useState<Record<string, FrameData[]>>({})
   const [transcriptionDisabled, setTranscriptionDisabled] = useState(false)
   const [frameIntervalSeconds, setFrameIntervalSeconds] = useState(1)
 
@@ -166,9 +167,21 @@ export default function InspectionsPage() {
     const videoMap = Object.fromEntries(videos.map(v => [v.id, v.title]))
     setHistory(
       inspections
-        .filter(i => i.status === 'completed')
+        .filter(i => i.status === 'completed' || i.status === 'running' || i.status === 'error')
         .map(i => ({ inspection: i, videoTitle: videoMap[i.videoId] || '不明な動画' }))
     )
+  }
+
+  // 展開時にフレームデータを取得してキャッシュ
+  const handleExpand = async (inspectionId: string, videoId: string) => {
+    setExpandedId(prev => prev === inspectionId ? null : inspectionId)
+    if (framesByVideoId[videoId]) return
+    const res = await fetch(`/api/videos/${videoId}/features`)
+    if (!res.ok) return
+    const feature = await res.json().catch(() => null)
+    if (feature?.frames && Array.isArray(feature.frames)) {
+      setFramesByVideoId(prev => ({ ...prev, [videoId]: feature.frames as FrameData[] }))
+    }
   }
 
   useEffect(() => {
@@ -178,6 +191,14 @@ export default function InspectionsPage() {
       if (typeof f.frameIntervalSeconds === 'number') setFrameIntervalSeconds(f.frameIntervalSeconds)
     })
   }, [])
+
+  // 検証中の検品がある間は5秒ごとに履歴を更新
+  useEffect(() => {
+    const hasRunning = history.some(h => h.inspection.status === 'running')
+    if (!hasRunning) return
+    const timer = setInterval(fetchHistory, 5000)
+    return () => clearInterval(timer)
+  }, [history])
 
   const handleInspect = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -491,23 +512,40 @@ export default function InspectionsPage() {
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', marginBottom: 16 }}>検品履歴</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {history.map(({ inspection, videoTitle }) => {
+              const isRunning = inspection.status === 'running'
+              const isError = inspection.status === 'error'
               const okCount = inspection.results.filter(r => (r.humanOverride || r.judgment) === 'OK').length
               const ngCount = inspection.results.filter(r => (r.humanOverride || r.judgment) === 'NG').length
               const reviewCount = inspection.results.filter(r => (r.humanOverride || r.judgment) === '要確認').length
               const isExpanded = expandedId === inspection.id
+              const historyFrames = framesByVideoId[inspection.videoId] || []
 
               return (
-                <div key={inspection.id} style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 12, overflow: 'hidden' }}>
+                <div key={inspection.id} style={{ background: '#fff', border: `1px solid ${isRunning ? '#FFD803' : '#E3F6F5'}`, borderRadius: 12, overflow: 'hidden' }}>
                   <div
-                    onClick={() => setExpandedId(isExpanded ? null : inspection.id)}
+                    onClick={() => handleExpand(inspection.id, inspection.videoId)}
                     style={{ padding: '16px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                   >
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 15, color: '#272343', marginBottom: 6 }}>{videoTitle}</div>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <span style={{ fontSize: 12, background: '#d4edda', color: '#155724', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>OK {okCount}</span>
-                        {ngCount > 0 && <span style={{ fontSize: 12, background: '#f8d7da', color: '#721c24', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>NG {ngCount}</span>}
-                        {reviewCount > 0 && <span style={{ fontSize: 12, background: '#fff3cd', color: '#856404', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>要確認 {reviewCount}</span>}
+                        {isRunning && (
+                          <span style={{ fontSize: 12, background: '#FFF9E6', color: '#856404', padding: '2px 8px', borderRadius: 20, fontWeight: 700, border: '1px solid #FFD803' }}>
+                            検証中...
+                          </span>
+                        )}
+                        {isError && (
+                          <span style={{ fontSize: 12, background: '#f8d7da', color: '#721c24', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>
+                            エラー
+                          </span>
+                        )}
+                        {!isRunning && !isError && (
+                          <>
+                            <span style={{ fontSize: 12, background: '#d4edda', color: '#155724', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>OK {okCount}</span>
+                            {ngCount > 0 && <span style={{ fontSize: 12, background: '#f8d7da', color: '#721c24', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>NG {ngCount}</span>}
+                            {reviewCount > 0 && <span style={{ fontSize: 12, background: '#fff3cd', color: '#856404', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>要確認 {reviewCount}</span>}
+                          </>
+                        )}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -523,12 +561,15 @@ export default function InspectionsPage() {
                           return <div style={{ fontSize: 11, color: '#BAE8E8', opacity: 0.7 }}>実行時間: {label}</div>
                         })()}
                       </div>
-                      <span style={{ color: '#BAE8E8', fontSize: 16 }}>{isExpanded ? '▲' : '▼'}</span>
+                      {!isRunning && <span style={{ color: '#BAE8E8', fontSize: 16 }}>{isExpanded ? '▲' : '▼'}</span>}
                     </div>
                   </div>
-                  {isExpanded && (
+                  {isExpanded && !isRunning && (
                     <div style={{ borderTop: '1px solid #E3F6F5', padding: '20px 20px 16px' }}>
                       {renderResults(inspection)}
+                      {historyFrames.length > 0 && (
+                        <OcrPanel frames={historyFrames} frameInterval={frameIntervalSeconds} />
+                      )}
                     </div>
                   )}
                 </div>
