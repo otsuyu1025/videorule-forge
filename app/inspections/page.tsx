@@ -56,6 +56,7 @@ export default function InspectionsPage() {
   const [latestVideoTitle, setLatestVideoTitle] = useState('')
   const [history, setHistory] = useState<Array<{ inspection: VideoInspection; videoTitle: string }>>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [transcriptionDisabled, setTranscriptionDisabled] = useState(false)
 
   const fetchHistory = async () => {
     const [inspRes, videosRes] = await Promise.all([
@@ -72,7 +73,12 @@ export default function InspectionsPage() {
     )
   }
 
-  useEffect(() => { fetchHistory() }, [])
+  useEffect(() => {
+    fetchHistory()
+    fetch('/api/features').then(r => r.json()).then(f => {
+      setTranscriptionDisabled(f.transcriptionDisabled === true)
+    })
+  }, [])
 
   const handleInspect = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -218,6 +224,16 @@ export default function InspectionsPage() {
           動画URLを入力して、動画制作ルールと照合します。
         </p>
       </div>
+
+      {transcriptionDisabled && (
+        <div style={{ background: '#FFF9E6', border: '1px solid #FFD803', borderRadius: 10, padding: '12px 18px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+          <div style={{ fontSize: 13, color: '#272343', lineHeight: 1.7 }}>
+            <strong>音声文字起こしは現在無効です。</strong><br />
+            動画の映像・テキスト（字幕・テロップ）は解析されますが、ナレーションや会話の内容はルール判定に使用されません。
+          </div>
+        </div>
+      )}
 
       <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 16, padding: '32px 36px', marginBottom: 32 }}>
         <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #E3F6F5' }}>

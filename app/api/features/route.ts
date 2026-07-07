@@ -4,5 +4,6 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   return NextResponse.json({
     snsDownload: process.env.ENABLE_SNS_DOWNLOAD === 'true',
+    transcriptionDisabled: process.env.DISABLE_TRANSCRIPTION === 'true',
   })
 }
