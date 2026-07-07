@@ -159,7 +159,9 @@ export default function GuidelineDetailPage() {
 
         {!canAnalyze && (
           <div style={{ fontSize: 13, color: '#e67e22', background: '#FFF8DC', border: '1px solid #FFD803', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
-            ⚠️ テキスト内容を読み込めていません。.txt ファイルのみ自動解析できます。
+            ⚠️ このファイルからテキストを抽出できませんでした。<br />
+            対応形式：.txt / .pdf / .docx。スキャンされたPDFや画像PDFはテキスト抽出できません。<br />
+            テキストとして保存し直すか、.txt形式でアップロードし直してください。
           </div>
         )}
 

@@ -5,6 +5,25 @@ import { getDb } from '@/lib/db'
 import { v4 as uuidv4 } from 'uuid'
 import type { Guideline } from '@/types'
 
+async function extractText(buffer: Buffer, ext: string): Promise<string> {
+  if (ext === 'txt') {
+    return buffer.toString('utf-8')
+  }
+  if (ext === 'pdf') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfModule = await import('pdf-parse') as any
+    const pdfParse = pdfModule.default ?? pdfModule
+    const result = await pdfParse(buffer)
+    return result.text
+  }
+  if (ext === 'docx' || ext === 'doc') {
+    const mammoth = await import('mammoth')
+    const result = await mammoth.extractRawText({ buffer })
+    return result.value
+  }
+  return ''
+}
+
 export async function GET() {
   const db = await getDb()
   const guidelines = db.data.guidelines.filter(g => !g.deletedAt)
@@ -27,16 +46,18 @@ export async function POST(request: NextRequest) {
     const fileExt = fileName.split('.').pop()?.toLowerCase() ?? ''
     const title = titleField?.trim() || fileName.replace(/\.[^.]+$/, '')
 
+    const buffer = Buffer.from(await file.arrayBuffer())
     let content = ''
-    if (fileExt === 'txt') {
-      content = await file.text()
+    try {
+      content = await extractText(buffer, fileExt)
+    } catch (e) {
+      console.error('[guideline] テキスト抽出失敗:', e)
     }
 
     const uploadsDir = path.join(process.cwd(), 'data', 'uploads')
     await mkdir(uploadsDir, { recursive: true })
     const savedName = `${uuidv4()}-${fileName}`
     const filePath = path.join(uploadsDir, savedName)
-    const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(filePath, buffer)
 
     const guideline: Guideline = {
