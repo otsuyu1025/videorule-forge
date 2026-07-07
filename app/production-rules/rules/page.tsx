@@ -82,6 +82,15 @@ export default function RulesPage() {
 
   const categories = [...new Set(filtered.map(r => r.category))]
 
+  // 検品プロンプトのトークン予算に基づく文字数制限
+  // 出力 max_tokens=4096 / 1件あたり約100トークン = 約40件、1件100字換算 = 4,000字
+  const CHAR_LIMIT = 4000
+  const CHAR_WARN  = 3500
+  const totalChars = rules.reduce((sum, r) => sum + r.content.length, 0)
+  const charRatio  = Math.min(totalChars / CHAR_LIMIT, 1)
+  const isOver     = totalChars > CHAR_LIMIT
+  const isWarn     = !isOver && totalChars > CHAR_WARN
+
   return (
     <div style={{ padding: 48, maxWidth: 900, margin: '0 auto' }}>
       <div style={{ marginBottom: 4 }}>
@@ -101,6 +110,46 @@ export default function RulesPage() {
               ? <><span style={{ fontWeight: 700, color: '#272343' }}>{rules.length}件</span>のルールが登録されています。</>
               : 'まだルールは登録されていません。'}
           </p>
+
+          {/* 検品トークン予算メーター */}
+          {rules.length > 0 && (
+            <div style={{ marginTop: 16, maxWidth: 420 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <span style={{ fontSize: 12, color: '#2D334A', fontWeight: 600 }}>
+                  検品で使用するルール総文字数
+                </span>
+                <span style={{
+                  fontSize: 12, fontWeight: 700,
+                  color: isOver ? '#e74c3c' : isWarn ? '#e67e22' : '#272343',
+                }}>
+                  {totalChars.toLocaleString()}字 / {CHAR_LIMIT.toLocaleString()}字
+                </span>
+              </div>
+              {/* プログレスバー */}
+              <div style={{ height: 6, background: '#E3F6F5', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${charRatio * 100}%`,
+                  background: isOver ? '#e74c3c' : isWarn ? '#e67e22' : '#272343',
+                  borderRadius: 3,
+                  transition: 'width 0.3s',
+                }} />
+              </div>
+              {/* 警告メッセージ */}
+              {isOver && (
+                <div style={{ marginTop: 8, fontSize: 12, color: '#e74c3c', lineHeight: 1.6 }}>
+                  ⚠️ 上限を超えています。検品時にルールが途中で切れ、正確に判定されない可能性があります。
+                  不要なルールを削除するか、ルール文を短くしてください。
+                </div>
+              )}
+              {isWarn && (
+                <div style={{ marginTop: 8, fontSize: 12, color: '#e67e22', lineHeight: 1.6 }}>
+                  ⚠️ 上限まで残り{(CHAR_LIMIT - totalChars).toLocaleString()}字です。
+                  これ以上ルールを増やす場合は既存のルールを整理してください。
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <button
           onClick={() => {

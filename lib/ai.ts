@@ -174,7 +174,7 @@ ${rulesText}
   ]
 }`
 
-  const callParams = { model: MODEL, max_tokens: 2048, messages: [{ role: 'user' as const, content: prompt }] }
+  const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: prompt }] }
   await logTokenCount('動画検品', callParams)
 
   const message = await anthropic.messages.create(callParams)
