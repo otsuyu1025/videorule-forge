@@ -104,7 +104,7 @@ JSONで回答してください。3〜5個のルール候補を返してくだ�
   ]
 }`
 
-  const callParams = { model: MODEL, max_tokens: 1024, messages: [{ role: 'user' as const, content: prompt }] }
+  const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: prompt }] }
   await logTokenCount('ルール候補生成', callParams)
 
   const message = await anthropic.messages.create(callParams)
@@ -194,7 +194,7 @@ ${guideline.content}
   ]
 }`
 
-  const callParams = { model: MODEL, max_tokens: 1024, messages: [{ role: 'user' as const, content: prompt }] }
+  const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: prompt }] }
   await logTokenCount('ガイドライン解析', callParams)
 
   const message = await anthropic.messages.create(callParams)
