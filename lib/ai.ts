@@ -157,9 +157,14 @@ function buildFeatureDescription(
   }
 
   // 音声文字起こし（Stage 1: Whisper）
+  const transcriptionDisabled = process.env.DISABLE_TRANSCRIPTION === 'true'
   const transcription = feature.transcription || feature.audioContent || ''
   lines.push('\n【音声文字起こし（Whisper）】')
-  lines.push(transcription || '（音声なし、または取得できず）')
+  if (transcriptionDisabled) {
+    lines.push('音声文字起こしは現在無効（DISABLE_TRANSCRIPTION=true）です。音声内容はルール判定に使用されていません。音声に関するルールは「要確認」と判定し、その旨を理由に明記してください。')
+  } else {
+    lines.push(transcription || '（音声なし、または取得できず）')
+  }
 
   return lines.join('\n')
 }
@@ -188,7 +193,7 @@ function buildVisionContent(
     })
     content.push({
       type: 'text',
-      text: `↑ ${frame.filename}（${frame.timestamp}秒時点）　OCR: 「${frame.ocrText || 'テキストなし'}」`,
+      text: `↑ 動画${frame.timestamp}秒時点のフレーム　OCR参考値:「${frame.ocrText || 'なし'}」（文字化けしている場合はこの画像から直接テキストを読んでください）`,
     })
   }
 
@@ -271,9 +276,20 @@ export async function inspectVideo(
 ${featureText}
 ${hasVision ? `
 【添付フレーム画像について】
-フレームは動画から${frameInterval}秒ごとに抽出したものです。
-ファイル名: frame-{秒数}s.jpg（例: frame-3s.jpg = 3秒時点のフレーム）
-ロゴ・カラー・フォント・テロップ配置など、画面を直接見て判断できるルールはフレーム画像を参照してください。` : ''}
+フレームは動画から${frameInterval}秒ごとに抽出したものです。各フレームには「動画X秒時点」と記載しています。
+
+＜画像参照の指示＞
+1. ロゴ・カラー・フォント・テロップ配置など視覚的に判断できるルールは必ずフレーム画像を確認してください。
+2. フレームを言及するときは「frame-Xs.jpg」ではなく「動画X秒時点」「動画開始からX〜Y秒」のような表現を使ってください。
+3. OCR参考値が文字化け・ノイズを含む場合は、フレーム画像から直接テキストを読み取り、その内容を使用してください。
+4. テロップ表示時間: 同じテキストが複数の連続フレームに見える場合、「動画X秒〜Y秒の間（約Z秒間）表示」のように推定してください。
+
+＜フォント・文字サイズの推定方法＞
+フォント種別: 画像から「明朝体」「ゴシック体」「サンセリフ体」等を視覚的に特定してください。
+文字サイズ: フレーム解像度を基準に推定してください。
+  例: 解像度360×640px の場合、文字高さがフレーム高さの約5%なら約32px。
+  動画制作では「フレーム高さの何%か」または「約Xpx」で記載してください。
+  pt換算が必要な場合は「72dpiを仮定すると約Xpt相当」と付記してください。` : ''}
 
 【動画制作ルール】
 ${rulesText}
