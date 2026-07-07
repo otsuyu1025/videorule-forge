@@ -11,17 +11,19 @@ export default function GuidelineDetailPage() {
   const [guideline, setGuideline] = useState<Guideline | null>(null)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
-  const [analyzeResult, setAnalyzeResult] = useState<{ count: number } | null>(null)
+  const [existingCount, setExistingCount] = useState<number | null>(null)
   const [analyzeError, setAnalyzeError] = useState('')
 
   useEffect(() => {
-    fetch('/api/guidelines')
-      .then(r => r.json())
-      .then((list: Guideline[]) => {
-        const found = list.find(g => g.id === id)
-        setGuideline(found || null)
-        setLoading(false)
-      })
+    Promise.all([
+      fetch('/api/guidelines').then(r => r.json()),
+      fetch(`/api/rule-candidates?guidelineId=${id}`).then(r => r.json()),
+    ]).then(([list, candidates]: [Guideline[], unknown[]]) => {
+      const found = list.find(g => g.id === id)
+      setGuideline(found || null)
+      setExistingCount(candidates.length)
+      setLoading(false)
+    })
   }, [id])
 
   const handleDelete = async () => {
@@ -33,14 +35,14 @@ export default function GuidelineDetailPage() {
   const handleAnalyze = async () => {
     setAnalyzing(true)
     setAnalyzeError('')
-    setAnalyzeResult(null)
     try {
       const res = await fetch(`/api/guidelines/${id}/candidates`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
         setAnalyzeError(data.error || 'ルール候補の生成に失敗しました')
       } else {
-        setAnalyzeResult({ count: Array.isArray(data) ? data.length : 0 })
+        const newCount = Array.isArray(data) ? data.length : 0
+        setExistingCount(prev => (prev ?? 0) + newCount)
       }
     } catch {
       setAnalyzeError('通信エラーが発生しました')
@@ -165,10 +167,13 @@ export default function GuidelineDetailPage() {
           </div>
         )}
 
-        {analyzeResult && (
-          <div style={{ fontSize: 13, color: '#27ae60', background: '#F0FFF4', border: '1px solid #BAE8E8', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
-            ✓ {analyzeResult.count}件のルール候補を生成しました。
-            <Link href="/production-rules/candidates" style={{ marginLeft: 12, color: '#272343', fontWeight: 700, textDecoration: 'none' }}>
+        {/* 解析済バッジ */}
+        {!analyzing && existingCount !== null && existingCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, padding: '12px 16px', background: '#F0FFF4', border: '1px solid #BAE8E8', borderRadius: 8 }}>
+            <span style={{ fontSize: 13, color: '#27ae60', fontWeight: 700 }}>
+              ✓ 解析済：{existingCount}件のルール候補が生成されています
+            </span>
+            <Link href="/production-rules/candidates" style={{ fontSize: 13, color: '#272343', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               ルール候補を確認 →
             </Link>
           </div>
@@ -190,8 +195,17 @@ export default function GuidelineDetailPage() {
             cursor: analyzing || !canAnalyze ? 'default' : 'pointer',
           }}
         >
-          {analyzing ? '⏳ 解析中...' : '✨ ルール候補を生成する'}
+          {analyzing
+            ? '⏳ 解析中...'
+            : existingCount !== null && existingCount > 0
+              ? '✨ 再解析する'
+              : '✨ ルール候補を生成する'}
         </button>
+        {existingCount !== null && existingCount > 0 && !analyzing && (
+          <p style={{ fontSize: 12, color: '#999', marginTop: 8, marginBottom: 0 }}>
+            ※ 再解析すると追加でルール候補が生成されます
+          </p>
+        )}
       </div>
     </div>
   )

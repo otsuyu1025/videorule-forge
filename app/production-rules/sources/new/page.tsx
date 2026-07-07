@@ -422,14 +422,14 @@ export default function SourcesNewPage() {
                   <>
                     <div style={{ fontSize: 32, marginBottom: 10 }}>📂</div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>クリックしてファイルを選択</div>
-                    <div style={{ fontSize: 12, color: '#999' }}>PDF・Word・PowerPoint・テキスト (.txt .pdf .doc .docx .ppt .pptx)</div>
+                    <div style={{ fontSize: 12, color: '#999' }}>PDF・Word・テキスト (.pdf .docx .doc .txt)</div>
                   </>
                 )}
               </div>
               <input
                 ref={guidelineFileRef}
                 type="file"
-                accept=".txt,.pdf,.doc,.docx,.ppt,.pptx"
+                accept=".txt,.pdf,.doc,.docx"
                 onChange={e => {
                   const f = e.target.files?.[0] ?? null
                   setGuidelineFile(f)
