@@ -29,10 +29,14 @@ RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+# ビルド時は devDependencies も必要（@tailwindcss/postcss 等）
+RUN npm ci
 
 COPY . .
 RUN npm run build
+
+# ビルド後に devDependencies を削除してイメージを軽量化
+RUN npm prune --omit=dev
 
 # ── データディレクトリ ───────────────────────────────────────────────────
 RUN mkdir -p data/uploads data/frames data/logs data/tessdata
