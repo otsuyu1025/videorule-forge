@@ -36,8 +36,9 @@ export interface Video {
   filePath?: string
   status: VideoStatus
   errorMessage?: string
-  originalWidth?: number   // 圧縮前の元解像度
+  originalWidth?: number   // 圧縮前の元解像度・フレームレート
   originalHeight?: number
+  originalFps?: number
   createdAt: string
   deletedAt?: string
 }

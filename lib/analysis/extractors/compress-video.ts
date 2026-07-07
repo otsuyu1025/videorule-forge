@@ -2,19 +2,29 @@ import ffmpeg from 'fluent-ffmpeg'
 import { rename, rm, stat } from 'fs/promises'
 import path from 'path'
 
-/** 圧縮前の元解像度を ffprobe で取得する */
+/** 圧縮前の元メタ情報（解像度・fps）を ffprobe で取得する */
 export async function getOriginalDimensions(
   videoPath: string
-): Promise<{ width: number; height: number } | null> {
+): Promise<{ width: number; height: number; fps?: number } | null> {
   return new Promise(resolve => {
     ffmpeg.ffprobe(videoPath, (err, meta) => {
       if (err) { resolve(null); return }
       const vs = meta.streams.find(s => s.codec_type === 'video')
-      if (vs?.width && vs?.height) {
-        resolve({ width: vs.width, height: vs.height })
-      } else {
-        resolve(null)
+      if (!vs?.width || !vs?.height) { resolve(null); return }
+
+      // fps は "30000/1001" のような分数文字列で返ることがある
+      let fps: number | undefined
+      const rFrameRate = vs.r_frame_rate ?? vs.avg_frame_rate
+      if (rFrameRate && rFrameRate !== '0/0') {
+        const parts = rFrameRate.split('/')
+        if (parts.length === 2) {
+          const num = parseFloat(parts[0])
+          const den = parseFloat(parts[1])
+          if (den > 0) fps = Math.round((num / den) * 100) / 100
+        }
       }
+
+      resolve({ width: vs.width, height: vs.height, fps })
     })
   })
 }

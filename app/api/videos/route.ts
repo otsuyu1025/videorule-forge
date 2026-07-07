@@ -49,7 +49,11 @@ export async function POST(request: NextRequest) {
       type: typeField as Video['type'],
       filePath: compressedPath,
       status: 'pending',
-      ...(originalDims && { originalWidth: originalDims.width, originalHeight: originalDims.height }),
+      ...(originalDims && {
+        originalWidth: originalDims.width,
+        originalHeight: originalDims.height,
+        ...(originalDims.fps !== undefined && { originalFps: originalDims.fps }),
+      }),
       createdAt: new Date().toISOString(),
     }
     db.data.videos.push(video)

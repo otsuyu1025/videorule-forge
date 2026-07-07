@@ -49,7 +49,7 @@ function logUsage(label: string, usage: Anthropic.Usage): void {
  */
 function buildFeatureDescription(
   feature: VideoFeature,
-  originalDims?: { width: number; height: number } | null
+  originalDims?: { width: number; height: number; fps?: number } | null
 ): string {
   const lines: string[] = []
 
@@ -61,11 +61,15 @@ function buildFeatureDescription(
     if (originalDims) {
       lines.push(`・元の解像度（圧縮前・ルール判定用）: ${originalDims.width}×${originalDims.height}`)
       lines.push(`・解析時解像度（圧縮後）: ${feature.meta.width}×${feature.meta.height}`)
+      if (originalDims.fps !== undefined) {
+        lines.push(`・元のフレームレート（圧縮前・ルール判定用）: ${originalDims.fps}fps`)
+      } else {
+        lines.push(`・フレームレート: ${feature.meta.fps}fps（※圧縮後の値）`)
+      }
     } else {
       lines.push(`・解像度: ${feature.meta.width}×${feature.meta.height}（※この値は圧縮後のものです）`)
+      lines.push(`・フレームレート: ${feature.meta.fps}fps（※この値は圧縮後のものです）`)
     }
-
-    lines.push(`・FPS: ${feature.meta.fps}`)
     lines.push(`・コーデック: ${feature.meta.videoCodec}`)
     lines.push(`・ビットレート: ${feature.meta.bitrate}kbps`)
     lines.push(`・音声: ${feature.meta.hasAudio ? `あり（${feature.meta.audioCodec ?? '不明'}）` : 'なし'}`)
@@ -91,7 +95,7 @@ function buildFeatureDescription(
 export async function generateRuleCandidates(
   feature: VideoFeature,
   guidelines: Array<{ title: string; content: string }>,
-  originalDims?: { width: number; height: number } | null
+  originalDims?: { width: number; height: number; fps?: number } | null
 ): Promise<Array<{ content: string; category: string; reason: string }>> {
   const guidelineText = guidelines.length > 0
     ? `\n\n【参照ガイドライン】\n${guidelines.map(g => `▼${g.title}\n${g.content}`).join('\n\n')}`
@@ -143,7 +147,7 @@ JSONで回答してください。3〜5個のルール候補を返してくだ�
 export async function inspectVideo(
   feature: VideoFeature,
   rules: ProductionRule[],
-  originalDims?: { width: number; height: number } | null
+  originalDims?: { width: number; height: number; fps?: number } | null
 ): Promise<InspectionResult[]> {
   if (rules.length === 0) return []
 

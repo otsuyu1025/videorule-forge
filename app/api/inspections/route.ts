@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const originalDims = (video.originalWidth && video.originalHeight)
-      ? { width: video.originalWidth, height: video.originalHeight }
+      ? { width: video.originalWidth, height: video.originalHeight, fps: video.originalFps }
       : null
     const results = await inspectVideo(feature, rules, originalDims)
     inspection.results = results

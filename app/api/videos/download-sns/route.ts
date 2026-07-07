@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
           if (originalDims) {
             v.originalWidth  = originalDims.width
             v.originalHeight = originalDims.height
+            if (originalDims.fps !== undefined) v.originalFps = originalDims.fps
           }
 
           // ダウンロード後に解像度を圧縮（OCR読み取り可能レベルまで下げる）
