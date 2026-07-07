@@ -1,10 +1,106 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import type { VideoInspection, InspectionResult } from '@/types'
+import type { VideoInspection, InspectionResult, FrameData } from '@/types'
 
 type Step = 'idle' | 'registering' | 'analyzing' | 'inspecting' | 'done' | 'error'
 type InputMode = 'url' | 'file'
+
+/** テロップ表示タイムラインをクライアントサイドで構築 */
+function buildTelopTimeline(frames: FrameData[], frameInterval: number): string {
+  const segments: Array<{ text: string; startTime: number; frameCount: number }> = []
+  for (const frame of frames) {
+    const text = frame.ocrText.trim()
+    const last = segments[segments.length - 1]
+    if (last && last.text === text) {
+      last.frameCount++
+    } else {
+      segments.push({ text, startTime: frame.timestamp, frameCount: 1 })
+    }
+  }
+  const textSegments = segments.filter(s => s.text.length > 0)
+  if (textSegments.length === 0) return ''
+  return textSegments.map(s => {
+    const duration = s.frameCount * frameInterval
+    const endTime = s.startTime + duration
+    return `${s.startTime}秒〜${endTime}秒（${duration}秒間）: 「${s.text}」`
+  }).join('\n')
+}
+
+function OcrPanel({ frames, frameInterval }: { frames: FrameData[]; frameInterval: number }) {
+  const [open, setOpen] = useState(false)
+
+  const framesWithText = frames.filter(f => f.ocrText.trim().length > 0)
+  const telopTimeline = buildTelopTimeline(frames, frameInterval)
+
+  return (
+    <div style={{ marginTop: 16, borderTop: '1px solid #E3F6F5', paddingTop: 14 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: 13, fontWeight: 700, color: '#272343', padding: 0,
+        }}
+      >
+        <span style={{ fontSize: 12, color: '#BAE8E8' }}>{open ? '▲' : '▼'}</span>
+        OCR解析詳細
+        <span style={{ fontSize: 11, fontWeight: 400, color: '#999', marginLeft: 4 }}>
+          ({framesWithText.length}/{frames.length}フレームでテキスト検出)
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 12 }}>
+          {telopTimeline ? (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#2D334A', marginBottom: 6 }}>
+                テロップ表示タイムライン
+              </div>
+              <div style={{
+                background: '#F5FCFC', border: '1px solid #E3F6F5', borderRadius: 8,
+                padding: '10px 14px', marginBottom: 14,
+              }}>
+                {telopTimeline.split('\n').map((line, i) => (
+                  <div key={i} style={{ fontSize: 12, color: '#272343', lineHeight: 1.8 }}>{line}</div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: '#999', marginBottom: 14 }}>
+              テロップ（継続表示）は検出されませんでした
+            </div>
+          )}
+
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#2D334A', marginBottom: 6 }}>
+            フレーム別OCR結果
+          </div>
+          <div style={{
+            background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 8,
+            padding: '10px 14px', maxHeight: 240, overflowY: 'auto',
+          }}>
+            {frames.map((f, i) => (
+              <div key={i} style={{
+                display: 'flex', gap: 10, fontSize: 12, lineHeight: 1.7,
+                borderBottom: i < frames.length - 1 ? '1px solid #f0f0f0' : 'none',
+                paddingBottom: 2, marginBottom: 2,
+              }}>
+                <span style={{
+                  color: '#BAE8E8', flexShrink: 0, width: 44, textAlign: 'right',
+                }}>
+                  {f.timestamp}秒
+                </span>
+                <span style={{ color: f.ocrText.trim() ? '#272343' : '#ccc' }}>
+                  {f.ocrText.trim() || '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function JudgmentBadge({ judgment }: { judgment: string }) {
   const colors: Record<string, { bg: string; color: string }> = {
@@ -54,9 +150,11 @@ export default function InspectionsPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [latestInspection, setLatestInspection] = useState<VideoInspection | null>(null)
   const [latestVideoTitle, setLatestVideoTitle] = useState('')
+  const [latestFrames, setLatestFrames] = useState<FrameData[]>([])
   const [history, setHistory] = useState<Array<{ inspection: VideoInspection; videoTitle: string }>>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [transcriptionDisabled, setTranscriptionDisabled] = useState(false)
+  const [frameIntervalSeconds, setFrameIntervalSeconds] = useState(1)
 
   const fetchHistory = async () => {
     const [inspRes, videosRes] = await Promise.all([
@@ -77,6 +175,7 @@ export default function InspectionsPage() {
     fetchHistory()
     fetch('/api/features').then(r => r.json()).then(f => {
       setTranscriptionDisabled(f.transcriptionDisabled === true)
+      if (typeof f.frameIntervalSeconds === 'number') setFrameIntervalSeconds(f.frameIntervalSeconds)
     })
   }, [])
 
@@ -122,6 +221,12 @@ export default function InspectionsPage() {
           (typeof body.message === 'string' && body.message) ||
           '動画の解析に失敗しました'
         )
+      }
+      const featureData = await featureRes.json().catch(() => null)
+      if (featureData?.frames && Array.isArray(featureData.frames)) {
+        setLatestFrames(featureData.frames as FrameData[])
+      } else {
+        setLatestFrames([])
       }
 
       setStep('inspecting')
@@ -375,6 +480,9 @@ export default function InspectionsPage() {
             <span style={{ fontSize: 12, fontWeight: 700, color: '#272343', background: '#FFD803', padding: '4px 12px', borderRadius: 20 }}>完了</span>
           </div>
           {renderResults(latestInspection)}
+          {latestFrames.length > 0 && (
+            <OcrPanel frames={latestFrames} frameInterval={frameIntervalSeconds} />
+          )}
         </div>
       )}
 
@@ -403,7 +511,18 @@ export default function InspectionsPage() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: 12, color: '#BAE8E8' }}>{new Date(inspection.createdAt).toLocaleDateString('ja-JP')}</span>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 12, color: '#BAE8E8' }}>
+                          {new Date(inspection.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                          {' '}
+                          {new Date(inspection.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        {inspection.completedAt && (() => {
+                          const sec = Math.round((new Date(inspection.completedAt).getTime() - new Date(inspection.createdAt).getTime()) / 1000)
+                          const label = sec >= 60 ? `${Math.floor(sec / 60)}分${sec % 60}秒` : `${sec}秒`
+                          return <div style={{ fontSize: 11, color: '#BAE8E8', opacity: 0.7 }}>実行時間: {label}</div>
+                        })()}
+                      </div>
                       <span style={{ color: '#BAE8E8', fontSize: 16 }}>{isExpanded ? '▲' : '▼'}</span>
                     </div>
                   </div>

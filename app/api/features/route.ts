@@ -5,5 +5,6 @@ export async function GET() {
   return NextResponse.json({
     snsDownload: process.env.ENABLE_SNS_DOWNLOAD === 'true',
     transcriptionDisabled: process.env.DISABLE_TRANSCRIPTION === 'true',
+    frameIntervalSeconds: parseInt(process.env.VIDEO_FRAME_INTERVAL || '1'),
   })
 }

@@ -1,10 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { VideoFeature, ProductionRule, InspectionResult, Guideline } from '@/types'
+import { readFileSync, existsSync } from 'fs'
+import path from 'path'
+import type { VideoFeature, ProductionRule, InspectionResult, Guideline, FrameData } from '@/types'
 
 const MODEL = 'claude-haiku-4-5-20251001'
 // Haiku 4.5 料金（2026年7月時点）
 const PRICE_INPUT_PER_M  = 1.00  // $1.00 / 1Mトークン
 const PRICE_OUTPUT_PER_M = 5.00  // $5.00 / 1Mトークン
+
+// ビジョン解析に使うフレームの最大枚数（多すぎるとトークン増大）
+const MAX_VISION_FRAMES = 10
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -44,6 +49,66 @@ function logUsage(label: string, usage: Anthropic.Usage): void {
 }
 
 /**
+ * 連続するフレームのOCRテキストからテロップ表示タイムラインを構築する。
+ * 同じテキストが N フレーム連続 = N × frameInterval 秒間表示されているとみなす。
+ */
+function buildTelopTimeline(frames: FrameData[], frameInterval: number): string {
+  if (!frames || frames.length === 0) return '（フレームデータなし）'
+
+  const segments: Array<{ text: string; startTime: number; frameCount: number }> = []
+
+  for (const frame of frames) {
+    const text = frame.ocrText.trim()
+    const last = segments[segments.length - 1]
+    if (last && last.text === text) {
+      last.frameCount++
+    } else {
+      segments.push({ text, startTime: frame.timestamp, frameCount: 1 })
+    }
+  }
+
+  const textSegments = segments.filter(s => s.text.length > 0)
+  if (textSegments.length === 0) return '（テロップ検出なし）'
+
+  return textSegments.map(s => {
+    const duration = s.frameCount * frameInterval
+    const endTime = s.startTime + duration
+    return `・「${s.text}」: ${s.startTime}秒〜${endTime}秒（${duration}秒間表示）`
+  }).join('\n')
+}
+
+/**
+ * フレーム画像を均等サンプリングしてbase64で読み込む。
+ * ファイルが存在しない場合は base64=null になる。
+ */
+function loadFramesForVision(
+  frames: FrameData[],
+  maxFrames: number
+): Array<{ timestamp: number; filename: string; ocrText: string; base64: string | null }> {
+  if (!frames || frames.length === 0) return []
+
+  // 均等サンプリング
+  const step = frames.length <= maxFrames ? 1 : Math.floor(frames.length / maxFrames)
+  const selected: FrameData[] = []
+  for (let i = 0; i < frames.length && selected.length < maxFrames; i += step) {
+    selected.push(frames[i])
+  }
+
+  return selected.map(f => {
+    const filename = f.imagePath ? path.basename(f.imagePath) : `frame-${f.timestamp}s.jpg`
+    let base64: string | null = null
+    if (f.imagePath && existsSync(f.imagePath)) {
+      try {
+        base64 = readFileSync(f.imagePath).toString('base64')
+      } catch {
+        // ファイル読み込み失敗は無視（R2使用時などは imagePath がサーバーローカルに存在しない）
+      }
+    }
+    return { timestamp: f.timestamp, filename, ocrText: f.ocrText, base64 }
+  })
+}
+
+/**
  * Stage 1（特徴抽出）の結果を人間が読みやすい文字列に変換する
  * originalDims: 圧縮前の元解像度（ある場合は優先してルール判定に使う）
  */
@@ -57,7 +122,6 @@ function buildFeatureDescription(
     lines.push('【動画メタ情報】')
     lines.push(`・尺: ${feature.meta.duration}秒`)
 
-    // 元解像度がある場合は「元の解像度（ルール判定用）」として明示する
     if (originalDims) {
       lines.push(`・元の解像度（圧縮前・ルール判定用）: ${originalDims.width}×${originalDims.height}`)
       lines.push(`・解析時解像度（圧縮後）: ${feature.meta.width}×${feature.meta.height}`)
@@ -79,10 +143,18 @@ function buildFeatureDescription(
     lines.push(`・尺: ${feature.duration}秒`)
   }
 
-  // OCRテキスト（Stage 1: Tesseract）
+  // OCRテキスト（重複除去済み）
   const ocrText = feature.ocrTexts?.join('\n') || feature.textContent || ''
-  lines.push('\n【画面テキスト（OCR）】')
+  lines.push('\n【画面テキスト（OCR・重複除去済み）】')
   lines.push(ocrText || '（テキストなし）')
+
+  // テロップ表示タイムライン（連続フレームから表示秒数を推定）
+  if (feature.frames && feature.frames.length > 0) {
+    const frameInterval = parseInt(process.env.VIDEO_FRAME_INTERVAL || '1')
+    lines.push(`\n【テロップ表示タイムライン（フレーム間隔: ${frameInterval}秒）】`)
+    lines.push('※同じテキストが連続フレームに表示されている場合、その秒数分だけ表示されているとみなします')
+    lines.push(buildTelopTimeline(feature.frames, frameInterval))
+  }
 
   // 音声文字起こし（Stage 1: Whisper）
   const transcription = feature.transcription || feature.audioContent || ''
@@ -90,6 +162,38 @@ function buildFeatureDescription(
   lines.push(transcription || '（音声なし、または取得できず）')
 
   return lines.join('\n')
+}
+
+/** ビジョンブロック込みのメッセージ content を構築する */
+function buildVisionContent(
+  promptText: string,
+  frames: FrameData[]
+): Anthropic.MessageParam['content'] {
+  const visionFrames = loadFramesForVision(frames, MAX_VISION_FRAMES)
+  const availableFrames = visionFrames.filter(f => f.base64 !== null)
+
+  if (availableFrames.length === 0) {
+    // フレーム画像が取得できない場合はテキストのみ
+    return promptText
+  }
+
+  const content: Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam> = [
+    { type: 'text', text: promptText },
+  ]
+
+  for (const frame of availableFrames) {
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: 'image/jpeg', data: frame.base64! },
+    })
+    content.push({
+      type: 'text',
+      text: `↑ ${frame.filename}（${frame.timestamp}秒時点）　OCR: 「${frame.ocrText || 'テキストなし'}」`,
+    })
+  }
+
+  console.log(`[AI] ビジョン解析: ${availableFrames.length}枚のフレーム画像を添付`)
+  return content
 }
 
 export async function generateRuleCandidates(
@@ -103,7 +207,7 @@ export async function generateRuleCandidates(
 
   const featureText = buildFeatureDescription(feature, originalDims)
 
-  const prompt = `あなたは動画制作の品質管理の専門家です。
+  const promptText = `あなたは動画制作の品質管理の専門家です。
 以下の動画特徴（OCR・音声文字起こし・メタ情報）をもとに、動画制作ルールの候補を提案してください。${guidelineText}
 
 ${featureText}
@@ -119,7 +223,8 @@ JSONで回答してください。3〜5個のルール候補を返してくだ�
   ]
 }`
 
-  const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: prompt }] }
+  const messageContent = buildVisionContent(promptText, feature.frames || [])
+  const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: messageContent }] }
   await logTokenCount('ルール候補生成', callParams)
 
   const message = await anthropic.messages.create(callParams)
@@ -156,11 +261,19 @@ export async function inspectVideo(
   ).join('\n')
 
   const featureText = buildFeatureDescription(feature, originalDims)
+  const frameInterval = parseInt(process.env.VIDEO_FRAME_INTERVAL || '1')
+  const visionFrames = loadFramesForVision(feature.frames || [], MAX_VISION_FRAMES)
+  const hasVision = visionFrames.some(f => f.base64 !== null)
 
-  const prompt = `あなたは動画品質検査の専門家です。
+  const promptText = `あなたは動画品質検査の専門家です。
 以下の動画特徴と動画制作ルールを照合し、各ルールの適合状況を判定してください。
 
 ${featureText}
+${hasVision ? `
+【添付フレーム画像について】
+フレームは動画から${frameInterval}秒ごとに抽出したものです。
+ファイル名: frame-{秒数}s.jpg（例: frame-3s.jpg = 3秒時点のフレーム）
+ロゴ・カラー・フォント・テロップ配置など、画面を直接見て判断できるルールはフレーム画像を参照してください。` : ''}
 
 【動画制作ルール】
 ${rulesText}
@@ -178,7 +291,8 @@ ${rulesText}
   ]
 }`
 
-  const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: prompt }] }
+  const messageContent = buildVisionContent(promptText, feature.frames || [])
+  const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: messageContent }] }
   await logTokenCount('動画検品', callParams)
 
   const message = await anthropic.messages.create(callParams)

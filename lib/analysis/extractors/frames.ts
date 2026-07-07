@@ -1,5 +1,5 @@
 import ffmpeg from 'fluent-ffmpeg'
-import { mkdir, readdir } from 'fs/promises'
+import { mkdir, readdir, rename } from 'fs/promises'
 import path from 'path'
 import type { AnalysisConfig } from '../types'
 import { uploadFramesToR2 } from '@/lib/storage/r2'
@@ -44,16 +44,25 @@ export async function extractFrames(
       .run()
   })
 
-  const files = (await readdir(framesDir))
-    .filter(f => f.endsWith('.jpg'))
+  // ffmpeg が出力した連番ファイル（frame-0001.jpg 〜）をタイムスタンプ入り名にリネーム
+  // 例: frame-0001.jpg → frame-0s.jpg, frame-0002.jpg → frame-1s.jpg (interval=1)
+  //     frame-0001.jpg → frame-0s.jpg, frame-0002.jpg → frame-2s.jpg (interval=2)
+  const rawFiles = (await readdir(framesDir))
+    .filter(f => /^frame-\d{4}\.jpg$/.test(f))
     .sort()
 
-  console.log(`[ffmpeg] フレーム抽出完了: ${files.length}枚`)
+  console.log(`[ffmpeg] フレーム抽出完了: ${rawFiles.length}枚`)
 
-  const result = files.map((filename, index) => ({
-    path: path.join(framesDir, filename),
-    timestamp: index * config.frameInterval,
-  }))
+  const result: Array<{ path: string; timestamp: number }> = []
+  for (let i = 0; i < rawFiles.length; i++) {
+    const timestamp = i * config.frameInterval
+    const ts = Number.isInteger(timestamp) ? String(timestamp) : timestamp.toFixed(1)
+    const newFilename = `frame-${ts}s.jpg`
+    const oldPath = path.join(framesDir, rawFiles[i])
+    const newPath = path.join(framesDir, newFilename)
+    await rename(oldPath, newPath)
+    result.push({ path: newPath, timestamp })
+  }
 
   // R2が設定されている場合はアップロード（ローカル開発では無視）
   await uploadFramesToR2(videoId, result).catch(err =>

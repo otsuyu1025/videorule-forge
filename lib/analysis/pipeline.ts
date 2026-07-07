@@ -35,10 +35,12 @@ async function findExistingFrames(
   if (files.length === 0) return null
 
   console.log(`[ffmpeg] 既存フレームを再利用: ${files.length}枚（ffmpegをスキップ）`)
-  return files.map((filename, index) => ({
-    path: path.join(framesDir, filename),
-    timestamp: index * config.frameInterval,
-  }))
+  return files.map((filename, index) => {
+    // 新形式: frame-3s.jpg → timestamp = 3
+    const match = filename.match(/^frame-(\d+(?:\.\d+)?)s\.jpg$/)
+    const timestamp = match ? parseFloat(match[1]) : index * config.frameInterval
+    return { path: path.join(framesDir, filename), timestamp }
+  })
 }
 
 /**
