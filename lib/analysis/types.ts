@@ -12,7 +12,7 @@ export interface VideoMeta {
 
 export interface FrameData {
   timestamp: number        // 秒（動画先頭からの経過）
-  imagePath: string        // 保存先の絶対パス
+  imagePath?: string       // 保存先の絶対パス
   ocrText: string          // このフレームのOCR結果
 }
 
