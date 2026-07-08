@@ -13,6 +13,7 @@ const MAX_VISION_FRAMES = 10
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  timeout: 120_000, // 2分でタイムアウト（デフォルト10分は長すぎるため）
 })
 
 /**
@@ -209,7 +210,14 @@ function buildVisionContent(
 export async function extractFrameTexts(frames: FrameData[]): Promise<FrameData[]> {
   if (!frames || frames.length === 0) return frames
 
-  const framesWithImages = frames.map(f => {
+  // 全フレームを送ると遅くなるため MAX_VISION_FRAMES 枚に均等サンプリング
+  const step = frames.length <= MAX_VISION_FRAMES ? 1 : Math.floor(frames.length / MAX_VISION_FRAMES)
+  const sampled: FrameData[] = []
+  for (let i = 0; i < frames.length && sampled.length < MAX_VISION_FRAMES; i += step) {
+    sampled.push(frames[i])
+  }
+
+  const framesWithImages = sampled.map(f => {
     let base64: string | null = null
     if (f.imagePath && existsSync(f.imagePath)) {
       try { base64 = readFileSync(f.imagePath).toString('base64') } catch { /* ignore */ }
