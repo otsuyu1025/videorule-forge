@@ -144,21 +144,21 @@ function CandidateCard({
                 <button
                   onClick={() => act('approved')}
                   disabled={acting}
-                  style={{ background: '#272343', color: '#FFD803', border: 'none', borderRadius: 7, padding: '8px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  style={{ background: acting ? '#ccc' : '#272343', color: '#FFD803', border: 'none', borderRadius: 7, padding: '8px 18px', fontWeight: 700, fontSize: 13, cursor: acting ? 'default' : 'pointer', whiteSpace: 'nowrap' }}
                 >
                   ✓ 承認する
                 </button>
                 <button
                   onClick={startEdit}
                   disabled={acting}
-                  style={{ background: '#fff', color: '#272343', border: '1px solid #272343', borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ background: '#fff', color: acting ? '#ccc' : '#272343', border: `1px solid ${acting ? '#ddd' : '#272343'}`, borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: acting ? 'default' : 'pointer' }}
                 >
                   ✏️ 編集
                 </button>
                 <button
                   onClick={() => act('rejected')}
                   disabled={acting}
-                  style={{ background: '#fff', color: '#999', border: '1px solid #ddd', borderRadius: 7, padding: '8px 18px', fontSize: 13, cursor: 'pointer' }}
+                  style={{ background: '#fff', color: acting ? '#ccc' : '#666', border: `1px solid ${acting ? '#eee' : '#bbb'}`, borderRadius: 7, padding: '8px 18px', fontSize: 13, cursor: acting ? 'default' : 'pointer' }}
                 >
                   却下
                 </button>
