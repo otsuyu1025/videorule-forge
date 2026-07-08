@@ -13,12 +13,15 @@ const BROWSERS: Array<{ value: SnsBrowser | ''; label: string; desc: string }> =
 ]
 
 const RETENTION_OPTIONS = [7, 14, 30, 60, 90]
+const VISION_INTERVAL_OPTIONS = [1, 2, 3, 5, 10]
 
 export default function SettingsPage() {
   const [snsBrowser, setSnsBrowser] = useState<SnsBrowser | ''>('')
   const [frameRetentionDays, setFrameRetentionDays] = useState(30)
+  const [visionFrameInterval, setVisionFrameInterval] = useState(3)
   const [browserSaved, setBrowserSaved] = useState(false)
   const [retentionSaved, setRetentionSaved] = useState(false)
+  const [visionIntervalSaved, setVisionIntervalSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [snsEnabled, setSnsEnabled] = useState(false)
 
@@ -29,6 +32,7 @@ export default function SettingsPage() {
     ]).then(([settings, features]) => {
       setSnsBrowser(settings.snsBrowser ?? '')
       setFrameRetentionDays(settings.frameRetentionDays ?? 30)
+      setVisionFrameInterval(features.visionFrameInterval ?? 3)
       setSnsEnabled(features.snsDownload === true)
       setLoading(false)
     })
@@ -56,6 +60,14 @@ export default function SettingsPage() {
     saveSetting({ frameRetentionDays: days }, () => {
       setRetentionSaved(true)
       setTimeout(() => setRetentionSaved(false), 2000)
+    })
+  }
+
+  const saveVisionInterval = (seconds: number) => {
+    setVisionFrameInterval(seconds)
+    saveSetting({ visionFrameInterval: seconds }, () => {
+      setVisionIntervalSaved(true)
+      setTimeout(() => setVisionIntervalSaved(false), 2000)
     })
   }
 
@@ -179,6 +191,54 @@ export default function SettingsPage() {
             <div style={{ marginTop: 14, fontSize: 12, color: '#999', lineHeight: 1.7 }}>
               現在の設定: <strong style={{ color: '#272343' }}>{frameRetentionDays}日</strong>後に自動削除<br />
               ※ Cloudflare R2 が設定されていない場合、この設定はローカルストレージには影響しません。
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* Vision OCR フレーム間隔 */}
+      <section style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 12, padding: 28, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', marginTop: 0, marginBottom: 6 }}>
+          Vision OCR のフレーム間隔
+        </h2>
+        <p style={{ fontSize: 14, color: '#2D334A', marginBottom: 20, lineHeight: 1.7 }}>
+          AI が動画内のテキスト（テロップ・字幕）を読み取る際に、何秒ごとに1枚のフレームを解析するかを設定します。<br />
+          間隔を長くすると処理が速くなりますが、短い時間だけ表示されるテロップを見逃す可能性があります。<br />
+          <span style={{ fontSize: 12, color: '#999' }}>※ 最大 10 枚まで。サーバーのメモリ制限（512MB）への対応として設定しています。</span>
+        </p>
+
+        {loading ? (
+          <div style={{ color: '#999', fontSize: 14 }}>読み込み中...</div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {VISION_INTERVAL_OPTIONS.map(sec => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => saveVisionInterval(sec)}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: 8,
+                    border: `2px solid ${visionFrameInterval === sec ? '#272343' : '#E3F6F5'}`,
+                    background: visionFrameInterval === sec ? '#272343' : '#fff',
+                    color: visionFrameInterval === sec ? '#FFD803' : '#272343',
+                    fontWeight: visionFrameInterval === sec ? 700 : 400,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    transition: 'all 0.1s',
+                  }}
+                >
+                  {sec}秒ごと
+                </button>
+              ))}
+            </div>
+            {visionIntervalSaved && (
+              <div style={{ fontSize: 13, color: '#27ae60', fontWeight: 600, marginTop: 12 }}>✓ 保存しました</div>
+            )}
+            <div style={{ marginTop: 14, fontSize: 12, color: '#999', lineHeight: 1.7 }}>
+              現在の設定: <strong style={{ color: '#272343' }}>{visionFrameInterval}秒ごとに1枚</strong>（最大10枚）<br />
+              目安: 30秒の動画 → {Math.min(10, Math.floor(30 / visionFrameInterval) + 1)}枚のフレームを解析
             </div>
           </>
         )}

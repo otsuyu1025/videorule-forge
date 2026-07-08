@@ -44,7 +44,9 @@ export async function POST(request: NextRequest) {
     const originalDims = (video.originalWidth && video.originalHeight)
       ? { width: video.originalWidth, height: video.originalHeight, fps: video.originalFps }
       : null
-    const results = await inspectVideo(feature, rules, originalDims)
+    const visionInterval: number = (db.data.settings as Record<string, unknown> | undefined)?.visionFrameInterval as number
+      ?? parseInt(process.env.VISION_FRAME_INTERVAL || '3')
+    const results = await inspectVideo(feature, rules, originalDims, visionInterval)
     inspection.results = results
     inspection.status = 'completed'
     inspection.completedAt = new Date().toISOString()

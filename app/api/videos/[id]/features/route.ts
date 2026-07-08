@@ -124,10 +124,12 @@ export async function POST(
       })
 
       // Tesseract の文字化けを Vision OCR で修正（60秒でタイムアウト、失敗時は Tesseract 結果を維持）
+      const visionInterval: number = (db.data.settings as Record<string, unknown> | undefined)?.visionFrameInterval as number
+        ?? parseInt(process.env.VISION_FRAME_INTERVAL || '3')
       const visionTimeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Vision OCR timeout')), 60_000)
       )
-      const correctedFrames = await Promise.race([extractFrameTexts(extracted.frames), visionTimeout])
+      const correctedFrames = await Promise.race([extractFrameTexts(extracted.frames, visionInterval), visionTimeout])
         .catch(() => extracted.frames)
       extracted.frames = correctedFrames
       extracted.ocrTexts = [...new Set(correctedFrames.map(f => f.ocrText).filter(t => t.length > 0))]

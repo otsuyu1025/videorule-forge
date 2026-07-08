@@ -85,16 +85,14 @@ function buildTelopTimeline(frames: FrameData[], frameInterval: number): string 
  */
 function loadFramesForVision(
   frames: FrameData[],
-  maxFrames: number
+  maxFrames: number,
+  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '3')
 ): Array<{ timestamp: number; filename: string; ocrText: string; base64: string | null }> {
   if (!frames || frames.length === 0) return []
 
-  // 均等サンプリング
-  const step = frames.length <= maxFrames ? 1 : Math.floor(frames.length / maxFrames)
-  const selected: FrameData[] = []
-  for (let i = 0; i < frames.length && selected.length < maxFrames; i += step) {
-    selected.push(frames[i])
-  }
+  // visionInterval 秒ごとに1枚サンプリング、上限 maxFrames 枚
+  let selected = frames.filter(f => f.timestamp % visionInterval === 0).slice(0, maxFrames)
+  if (selected.length === 0) selected = [frames[0]] // 最低1枚確保
 
   return selected.map(f => {
     const filename = f.imagePath ? path.basename(f.imagePath) : `frame-${f.timestamp}s.jpg`
@@ -174,9 +172,10 @@ function buildFeatureDescription(
 /** ビジョンブロック込みのメッセージ content を構築する */
 function buildVisionContent(
   promptText: string,
-  frames: FrameData[]
+  frames: FrameData[],
+  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '3')
 ): Anthropic.MessageParam['content'] {
-  const visionFrames = loadFramesForVision(frames, MAX_VISION_FRAMES)
+  const visionFrames = loadFramesForVision(frames, MAX_VISION_FRAMES, visionInterval)
   const availableFrames = visionFrames.filter(f => f.base64 !== null)
 
   if (availableFrames.length === 0) {
@@ -207,15 +206,15 @@ function buildVisionContent(
  * フレーム画像から Vision で正確なテキストを抽出し、Tesseract の文字化けを上書きする。
  * 失敗時は元の frames をそのまま返す（Tesseract 結果を維持）。
  */
-export async function extractFrameTexts(frames: FrameData[]): Promise<FrameData[]> {
+export async function extractFrameTexts(
+  frames: FrameData[],
+  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '3')
+): Promise<FrameData[]> {
   if (!frames || frames.length === 0) return frames
 
-  // 全フレームを送ると遅くなるため MAX_VISION_FRAMES 枚に均等サンプリング
-  const step = frames.length <= MAX_VISION_FRAMES ? 1 : Math.floor(frames.length / MAX_VISION_FRAMES)
-  const sampled: FrameData[] = []
-  for (let i = 0; i < frames.length && sampled.length < MAX_VISION_FRAMES; i += step) {
-    sampled.push(frames[i])
-  }
+  // visionInterval 秒ごとに1枚サンプリング、上限 MAX_VISION_FRAMES 枚
+  let sampled = frames.filter(f => f.timestamp % visionInterval === 0).slice(0, MAX_VISION_FRAMES)
+  if (sampled.length === 0) sampled = [frames[0]] // 最低1枚確保
 
   const framesWithImages = sampled.map(f => {
     let base64: string | null = null
@@ -271,7 +270,8 @@ export async function extractFrameTexts(frames: FrameData[]): Promise<FrameData[
 export async function generateRuleCandidates(
   feature: VideoFeature,
   guidelines: Array<{ title: string; content: string }>,
-  originalDims?: { width: number; height: number; fps?: number } | null
+  originalDims?: { width: number; height: number; fps?: number } | null,
+  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '3')
 ): Promise<Array<{ content: string; category: string; reason: string }>> {
   const guidelineText = guidelines.length > 0
     ? `\n\n【参照ガイドライン】\n${guidelines.map(g => `▼${g.title}\n${g.content}`).join('\n\n')}`
@@ -295,7 +295,7 @@ JSONで回答してください。3〜5個のルール候補を返してくだ�
   ]
 }`
 
-  const messageContent = buildVisionContent(promptText, feature.frames || [])
+  const messageContent = buildVisionContent(promptText, feature.frames || [], visionInterval)
   const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: messageContent }] }
   await logTokenCount('ルール候補生成', { model: MODEL, messages: callParams.messages })
 
@@ -324,7 +324,8 @@ JSONで回答してください。3〜5個のルール候補を返してくだ�
 export async function inspectVideo(
   feature: VideoFeature,
   rules: ProductionRule[],
-  originalDims?: { width: number; height: number; fps?: number } | null
+  originalDims?: { width: number; height: number; fps?: number } | null,
+  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '3')
 ): Promise<InspectionResult[]> {
   if (rules.length === 0) return []
 
@@ -374,7 +375,7 @@ ${rulesText}
   ]
 }`
 
-  const messageContent = buildVisionContent(promptText, feature.frames || [])
+  const messageContent = buildVisionContent(promptText, feature.frames || [], visionInterval)
   const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: messageContent }] }
   await logTokenCount('動画検品', { model: MODEL, messages: callParams.messages })
 
