@@ -7,7 +7,7 @@ interface DashboardData {
   pendingCandidates: number
   pendingInspections: number
   totalRules: number
-  totalVideos: number
+  totalSources: number
   totalInspections: number
   recentRules: Array<{ id: string; content: string; category: string; updatedAt: string }>
   recentReports: Array<{ id: string; videoTitle: string; comments: string; createdAt: string; issues: unknown[] }>
@@ -83,7 +83,7 @@ export default function Dashboard() {
 
       <div className="grid-stats">
         <StatCard label="動画制作ルール" value={data?.totalRules ?? 0} href="/production-rules" color="#BAE8E8" />
-        <StatCard label="知識ソース" value={data?.totalVideos ?? 0} href="/production-rules/sources" color="#E3F6F5" />
+        <StatCard label="知識ソース" value={data?.totalSources ?? 0} href="/production-rules/sources" color="#E3F6F5" />
         <StatCard label="完了した検査" value={data?.totalInspections ?? 0} href="/inspections" color="#FFD803" />
       </div>
 

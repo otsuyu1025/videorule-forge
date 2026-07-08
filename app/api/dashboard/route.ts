@@ -25,7 +25,9 @@ export async function GET() {
     })
 
   const totalRules = db.data.productionRules.filter(r => !r.deletedAt && r.isActive).length
-  const totalVideos = db.data.videos.filter(v => !v.deletedAt).length
+  const totalSources =
+    db.data.guidelines.filter(g => !g.deletedAt).length +
+    db.data.videos.filter(v => !v.deletedAt && v.type === 'sample').length
   const totalInspections = db.data.videoInspections.filter(i => i.status === 'completed').length
 
   return Response.json({
@@ -34,7 +36,7 @@ export async function GET() {
     recentRules,
     recentReports,
     totalRules,
-    totalVideos,
+    totalSources,
     totalInspections,
   })
 }
