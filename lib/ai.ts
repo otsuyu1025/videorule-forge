@@ -8,8 +8,10 @@ const MODEL = 'claude-haiku-4-5-20251001'
 const PRICE_INPUT_PER_M  = 1.00  // $1.00 / 1Mトークン
 const PRICE_OUTPUT_PER_M = 5.00  // $5.00 / 1Mトークン
 
-// ビジョン解析に使うフレームの最大枚数（多すぎるとトークン増大）
+// inspectVideo/generateRuleCandidates で使うフレーム上限（大きいテキストプロンプトと共存するため抑制）
 const MAX_VISION_FRAMES = 10
+// Anthropic の1リクエストあたりの画像上限
+const VISION_BATCH_SIZE = 20
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -86,7 +88,7 @@ function buildTelopTimeline(frames: FrameData[], frameInterval: number): string 
 function loadFramesForVision(
   frames: FrameData[],
   maxFrames: number,
-  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '3')
+  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '1')
 ): Array<{ timestamp: number; filename: string; ocrText: string; base64: string | null }> {
   if (!frames || frames.length === 0) return []
 
@@ -173,7 +175,7 @@ function buildFeatureDescription(
 function buildVisionContent(
   promptText: string,
   frames: FrameData[],
-  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '3')
+  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '1')
 ): Anthropic.MessageParam['content'] {
   const visionFrames = loadFramesForVision(frames, MAX_VISION_FRAMES, visionInterval)
   const availableFrames = visionFrames.filter(f => f.base64 !== null)
@@ -208,63 +210,67 @@ function buildVisionContent(
  */
 export async function extractFrameTexts(
   frames: FrameData[],
-  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '3')
+  onProgress?: (current: number, total: number) => Promise<void>,
+  visionInterval = parseInt(process.env.VISION_FRAME_INTERVAL || '1')
 ): Promise<FrameData[]> {
   if (!frames || frames.length === 0) return frames
 
-  // visionInterval 秒ごとに1枚サンプリング、上限 MAX_VISION_FRAMES 枚
-  let sampled = frames.filter(f => f.timestamp % visionInterval === 0).slice(0, MAX_VISION_FRAMES)
-  if (sampled.length === 0) sampled = [frames[0]] // 最低1枚確保
+  // visionInterval 秒ごとに1枚サンプリング（上限なし: バッチで処理）
+  let sampled = frames.filter(f => f.timestamp % visionInterval === 0)
+  if (sampled.length === 0) sampled = [frames[0]]
 
-  const framesWithImages = sampled.map(f => {
-    let base64: string | null = null
-    if (f.imagePath && existsSync(f.imagePath)) {
-      try { base64 = readFileSync(f.imagePath).toString('base64') } catch { /* ignore */ }
-    }
-    return { ...f, base64 }
-  })
+  const available = sampled
+    .map(f => {
+      let base64: string | null = null
+      if (f.imagePath && existsSync(f.imagePath)) {
+        try { base64 = readFileSync(f.imagePath).toString('base64') } catch { /* ignore */ }
+      }
+      return { ...f, base64 }
+    })
+    .filter(f => f.base64 !== null)
 
-  const available = framesWithImages.filter(f => f.base64 !== null)
   if (available.length === 0) return frames
 
-  const content: Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam> = [
-    {
-      type: 'text',
-      text: '各フレーム画像に表示されているテキスト（テロップ・字幕・ロゴ文字など）を正確に読み取ってください。テキストがない場合は空文字にしてください。\n\nJSON形式で回答:\n{"frames":[{"timestamp":<秒数>,"text":"<検出テキスト>"}]}',
-    },
-  ]
-  for (const f of available) {
-    content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.base64! } })
-    content.push({ type: 'text', text: `↑ ${f.timestamp}秒時点` })
+  const textMap: Record<number, string> = {}
+  // Anthropic の上限（20枚）ごとにバッチ分割
+  const batches: typeof available[] = []
+  for (let i = 0; i < available.length; i += VISION_BATCH_SIZE) {
+    batches.push(available.slice(i, i + VISION_BATCH_SIZE))
+  }
+  console.log(`[VisionOCR] ${available.length}枚を${batches.length}バッチで処理`)
+
+  let processed = 0
+  for (const batch of batches) {
+    const content: Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam> = [
+      { type: 'text', text: '各フレーム画像に表示されているテキスト（テロップ・字幕・ロゴ文字など）を正確に読み取ってください。テキストがない場合は空文字にしてください。\n\nJSON形式で回答:\n{"frames":[{"timestamp":<秒数>,"text":"<検出テキスト>"}]}' },
+    ]
+    for (const f of batch) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.base64! } })
+      content.push({ type: 'text', text: `↑ ${f.timestamp}秒時点` })
+    }
+    try {
+      const message = await anthropic.messages.create({ model: MODEL, max_tokens: 1024, messages: [{ role: 'user', content }] })
+      logUsage(`Vision OCR バッチ${batches.indexOf(batch) + 1}/${batches.length}`, message.usage)
+      const raw = message.content[0].type === 'text' ? message.content[0].text : ''
+      const jsonMatch = raw.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0])
+        for (const f of (parsed.frames || [])) textMap[f.timestamp] = f.text ?? ''
+      }
+    } catch (e) {
+      console.error('[VisionOCR] バッチ失敗:', e instanceof Error ? e.message : e)
+    }
+    processed += batch.length
+    await onProgress?.(processed, available.length)
   }
 
-  try {
-    const message = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
-      messages: [{ role: 'user', content }],
-    })
-    logUsage('Vision OCR', message.usage)
-
-    const raw = message.content[0].type === 'text' ? message.content[0].text : ''
-    const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) return frames
-
-    const parsed = JSON.parse(jsonMatch[0])
-    const textMap: Record<number, string> = {}
-    for (const f of (parsed.frames || [])) textMap[f.timestamp] = f.text ?? ''
-
-    const corrected = frames.map(f => ({
-      ...f,
-      ocrText: textMap[f.timestamp] !== undefined ? textMap[f.timestamp] : f.ocrText,
-    }))
-    const detected = corrected.filter(f => f.ocrText.length > 0).length
-    console.log(`[VisionOCR] テキスト修正完了: ${detected}/${frames.length}枚`)
-    return corrected
-  } catch (e) {
-    console.error('[VisionOCR] 失敗（Tesseract 結果を維持）:', e instanceof Error ? e.message : e)
-    return frames
-  }
+  const corrected = frames.map(f => ({
+    ...f,
+    ocrText: textMap[f.timestamp] !== undefined ? textMap[f.timestamp] : f.ocrText,
+  }))
+  const detected = corrected.filter(f => f.ocrText.length > 0).length
+  console.log(`[VisionOCR] テキスト修正完了: ${detected}/${frames.length}枚`)
+  return corrected
 }
 
 export async function generateRuleCandidates(

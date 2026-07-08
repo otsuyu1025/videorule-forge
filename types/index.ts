@@ -41,6 +41,7 @@ export interface Video {
   originalFps?: number
   createdAt: string
   deletedAt?: string
+  analysisProgress?: { stage: 'ocr' | 'vision_ocr'; current: number; total: number }
 }
 
 // Stage 1 特徴抽出の結果型（lib/analysis/types.ts と対応）

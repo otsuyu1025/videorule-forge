@@ -18,7 +18,7 @@ const VISION_INTERVAL_OPTIONS = [1, 2, 3, 5, 10]
 export default function SettingsPage() {
   const [snsBrowser, setSnsBrowser] = useState<SnsBrowser | ''>('')
   const [frameRetentionDays, setFrameRetentionDays] = useState(30)
-  const [visionFrameInterval, setVisionFrameInterval] = useState(3)
+  const [visionFrameInterval, setVisionFrameInterval] = useState(1)
   const [browserSaved, setBrowserSaved] = useState(false)
   const [retentionSaved, setRetentionSaved] = useState(false)
   const [visionIntervalSaved, setVisionIntervalSaved] = useState(false)
@@ -237,8 +237,8 @@ export default function SettingsPage() {
               <div style={{ fontSize: 13, color: '#27ae60', fontWeight: 600, marginTop: 12 }}>✓ 保存しました</div>
             )}
             <div style={{ marginTop: 14, fontSize: 12, color: '#999', lineHeight: 1.7 }}>
-              現在の設定: <strong style={{ color: '#272343' }}>{visionFrameInterval}秒ごとに1枚</strong>（最大10枚）<br />
-              目安: 30秒の動画 → {Math.min(10, Math.floor(30 / visionFrameInterval) + 1)}枚のフレームを解析
+              現在の設定: <strong style={{ color: '#272343' }}>{visionFrameInterval}秒ごとに1枚</strong>（最大20枚・超過分はバッチ処理）<br />
+              目安: 30秒の動画 → {Math.min(30, Math.ceil(30 / visionFrameInterval))}枚のフレームを解析
             </div>
           </>
         )}

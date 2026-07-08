@@ -33,7 +33,8 @@ async function ensureTessdata(): Promise<void> {
 }
 
 export async function runOcr(
-  frames: Array<{ path: string; timestamp: number }>
+  frames: Array<{ path: string; timestamp: number }>,
+  onProgress?: (current: number, total: number) => Promise<void>
 ): Promise<FrameData[]> {
   if (frames.length === 0) return []
 
@@ -50,7 +51,8 @@ export async function runOcr(
   await (worker as any).setParameters({ tessedit_pageseg_mode: '6' })
 
   const results: FrameData[] = []
-  for (const frame of frames) {
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i]
     try {
       const { data } = await worker.recognize(frame.path)
       const text = data.text
@@ -62,6 +64,7 @@ export async function runOcr(
     } catch {
       results.push({ timestamp: frame.timestamp, imagePath: frame.path, ocrText: '' })
     }
+    await onProgress?.(i + 1, frames.length)
   }
 
   await worker.terminate()

@@ -59,6 +59,7 @@ export async function analyzeVideo(
   source: string,
   videoId: string,
   onStatusUpdate?: (status: VideoStatus) => Promise<void>,
+  onOcrProgress?: (current: number, total: number) => Promise<void>,
 ): Promise<ExtractedFeatures> {
   const config = getConfig()
 
@@ -73,7 +74,7 @@ export async function analyzeVideo(
 
   // Stage 1c: OCR
   await onStatusUpdate?.('running_ocr')
-  const frames = await runOcr(framePaths)
+  const frames = await runOcr(framePaths, onOcrProgress)
 
   // Stage 1d: 音声文字起こし（音声トラックがない場合はスキップ）
   let transcription = ''

@@ -156,6 +156,8 @@ export default function InspectionsPage() {
   const [framesByVideoId, setFramesByVideoId] = useState<Record<string, FrameData[]>>({})
   const [transcriptionDisabled, setTranscriptionDisabled] = useState(false)
   const [frameIntervalSeconds, setFrameIntervalSeconds] = useState(1)
+  const [analysisProgress, setAnalysisProgress] = useState<{ stage: string; current: number; total: number } | null>(null)
+  const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchHistory = async () => {
     const [inspRes, videosRes] = await Promise.all([
@@ -234,7 +236,20 @@ export default function InspectionsPage() {
       const videoTitle = video.title
 
       setStep('analyzing')
+      setAnalysisProgress(null)
+      // 動画解析中はポーリングで進捗を取得
+      progressPollRef.current = setInterval(async () => {
+        const res = await fetch(`/api/videos/${video.id}`).catch(() => null)
+        if (!res?.ok) return
+        const vd = await res.json().catch(() => null)
+        if (vd?.analysisProgress) setAnalysisProgress(vd.analysisProgress)
+      }, 2000)
+
       const featureRes = await fetch(`/api/videos/${video.id}/features`, { method: 'POST' })
+      clearInterval(progressPollRef.current)
+      progressPollRef.current = null
+      setAnalysisProgress(null)
+
       if (!featureRes.ok) {
         const body = await featureRes.json().catch(() => ({})) as Record<string, unknown>
         throw new Error(
@@ -472,7 +487,15 @@ export default function InspectionsPage() {
           {isRunning && (
             <div style={{ background: '#F5FCFC', borderRadius: 10, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <StepIndicator current={step} step="registering" label="動画を登録中" />
-              <StepIndicator current={step} step="analyzing" label="AIが動画を解析中" />
+              <div>
+                <StepIndicator current={step} step="analyzing" label="AIが動画を解析中" />
+                {step === 'analyzing' && analysisProgress && (
+                  <div style={{ marginTop: 4, marginLeft: 36, fontSize: 12, color: '#999' }}>
+                    {analysisProgress.stage === 'ocr' ? 'テキスト認識（OCR）' : 'Vision OCR'}:
+                    {' '}{analysisProgress.current} / {analysisProgress.total} フレーム完了
+                  </div>
+                )}
+              </div>
               <StepIndicator current={step} step="inspecting" label="動画制作ルールと照合中" />
             </div>
           )}

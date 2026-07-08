@@ -118,19 +118,38 @@ export async function POST(
       video.status = 'extracting_meta'
       await db.write()
 
+      const onOcrProgress = async (current: number, total: number) => {
+        video.analysisProgress = { stage: 'ocr', current, total }
+        await db.write()
+      }
+
       const extracted = await analyzeVideo(source, id, async (status) => {
         video.status = status
+        video.analysisProgress = undefined
         await db.write()
-      })
+      }, onOcrProgress)
 
       // Tesseract の文字化けを Vision OCR で修正（60秒でタイムアウト、失敗時は Tesseract 結果を維持）
       const visionInterval: number = (db.data.settings as Record<string, unknown> | undefined)?.visionFrameInterval as number
-        ?? parseInt(process.env.VISION_FRAME_INTERVAL || '3')
+        ?? parseInt(process.env.VISION_FRAME_INTERVAL || '1')
+
+      const onVisionProgress = async (current: number, total: number) => {
+        video.analysisProgress = { stage: 'vision_ocr', current, total }
+        await db.write()
+      }
+
+      // バッチ処理のため、タイムアウトはバッチ数に応じて伸ばす（1バッチ60秒 × バッチ数）
+      const estimatedBatches = Math.ceil(extracted.frames.length / 20) || 1
       const visionTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Vision OCR timeout')), 60_000)
+        setTimeout(() => reject(new Error('Vision OCR timeout')), 60_000 * estimatedBatches)
       )
-      const correctedFrames = await Promise.race([extractFrameTexts(extracted.frames, visionInterval), visionTimeout])
-        .catch(() => extracted.frames)
+      const correctedFrames = await Promise.race([
+        extractFrameTexts(extracted.frames, onVisionProgress, visionInterval),
+        visionTimeout,
+      ]).catch(() => extracted.frames)
+
+      video.analysisProgress = undefined
+      await db.write()
       extracted.frames = correctedFrames
       extracted.ocrTexts = [...new Set(correctedFrames.map(f => f.ocrText).filter(t => t.length > 0))]
 
