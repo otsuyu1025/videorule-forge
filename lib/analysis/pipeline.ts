@@ -72,9 +72,15 @@ export async function analyzeVideo(
   const existingFrames = await findExistingFrames(videoId, config)
   const framePaths = existingFrames ?? await extractFrames(source, videoId, config)
 
-  // Stage 1c: OCR
-  await onStatusUpdate?.('running_ocr')
-  const frames = await runOcr(framePaths, onOcrProgress)
+  // Stage 1c: OCR（DISABLE_OCR=true のときは Tesseract をスキップして Vision OCR に委ねる）
+  let frames: import('./types').FrameData[]
+  if (process.env.DISABLE_OCR === 'true') {
+    console.log('[OCR] DISABLE_OCR=true: Tesseract をスキップ（Vision OCR で代替）')
+    frames = framePaths.map(f => ({ timestamp: f.timestamp, imagePath: f.path, ocrText: '' }))
+  } else {
+    await onStatusUpdate?.('running_ocr')
+    frames = await runOcr(framePaths, onOcrProgress)
+  }
 
   // Stage 1d: 音声文字起こし（音声トラックがない場合はスキップ）
   let transcription = ''
