@@ -215,8 +215,8 @@ export async function extractFrameTexts(
 ): Promise<FrameData[]> {
   if (!frames || frames.length === 0) return frames
 
-  // visionInterval 秒ごとに1枚サンプリング（上限なし: バッチで処理）
-  let sampled = frames.filter(f => f.timestamp % visionInterval === 0)
+  // visionInterval 秒ごとに1枚サンプリング（上限 MAX_VISION_FRAMES 枚）
+  let sampled = frames.filter(f => f.timestamp % visionInterval === 0).slice(0, MAX_VISION_FRAMES)
   if (sampled.length === 0) sampled = [frames[0]]
 
   // ファイルが存在するものだけ絞り込む（base64 はまだ読まない）

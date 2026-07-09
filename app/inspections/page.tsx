@@ -259,25 +259,71 @@ export default function InspectionsPage() {
       }, 2000)
 
       const featureRes = await fetch(`/api/videos/${video.id}/features`, { method: 'POST' })
+        .catch(() => null)
       clearInterval(progressPollRef.current)
       progressPollRef.current = null
       setAnalysisProgress(null)
-      setVideoStageLabel('')
 
-      if (!featureRes.ok) {
-        const body = await featureRes.json().catch(() => ({})) as Record<string, unknown>
-        let errorText = (typeof body.error === 'string' && body.error) || ''
-        // Railway タイムアウト等でサーバーが応答しなかった場合、DB の errorMessage を確認
-        if (!errorText) {
-          const vRes = await fetch(`/api/videos/${video.id}`).catch(() => null)
-          if (vRes?.ok) {
-            const vData = await vRes.json().catch(() => null)
-            errorText = (typeof vData?.errorMessage === 'string' && vData.errorMessage) || ''
+      let featureData: Record<string, unknown> | null = null
+
+      if (featureRes?.ok) {
+        featureData = await featureRes.json().catch(() => null)
+        setVideoStageLabel('')
+      } else {
+        // Railway HTTP タイムアウト or ネットワークエラー → サーバーは処理中の可能性があるためポーリング
+        // まず即座に動画ステータスを確認（サーバーが既にエラー/完了を書き込んでいる場合に備えて）
+        const initRes = await fetch(`/api/videos/${video.id}`).catch(() => null)
+        const initVd = initRes?.ok ? await initRes.json().catch(() => null) : null
+
+        if (initVd?.status === 'error') {
+          throw new Error(
+            (typeof initVd.errorMessage === 'string' && initVd.errorMessage) ||
+            '動画の解析に失敗しました。時間をおいて再試行してください。'
+          )
+        } else if (initVd?.status === 'analyzed') {
+          const fRes = await fetch(`/api/videos/${video.id}/features`).catch(() => null)
+          featureData = fRes?.ok ? await fRes.json().catch(() => null) : null
+        } else {
+          // まだ処理中（またはOOMでフリーズ中）→ 最大3分間ポーリング
+          const ANALYSIS_MAX_WAIT = 3 * 60 * 1000
+          const analysisStarted = Date.now()
+          let analysisResolved = false
+
+          while (!analysisResolved && Date.now() - analysisStarted < ANALYSIS_MAX_WAIT) {
+            await new Promise(r => setTimeout(r, 3000))
+            const vRes = await fetch(`/api/videos/${video.id}`).catch(() => null)
+            const vd = vRes?.ok ? await vRes.json().catch(() => null) : null
+            if (!vd) continue
+
+            if (vd.status && VIDEO_STAGE_LABELS[vd.status]) {
+              setVideoStageLabel(VIDEO_STAGE_LABELS[vd.status])
+            }
+
+            if (vd.status === 'analyzed') {
+              const fRes = await fetch(`/api/videos/${video.id}/features`).catch(() => null)
+              featureData = fRes?.ok ? await fRes.json().catch(() => null) : null
+              analysisResolved = true
+            } else if (vd.status === 'error') {
+              throw new Error(
+                (typeof vd.errorMessage === 'string' && vd.errorMessage) ||
+                '動画の解析に失敗しました。時間をおいて再試行してください。'
+              )
+            }
+          }
+
+          if (!analysisResolved) {
+            const vRes = await fetch(`/api/videos/${video.id}`).catch(() => null)
+            const vd = vRes?.ok ? await vRes.json().catch(() => null) : null
+            const stageLabel = (vd?.status && VIDEO_STAGE_LABELS[vd.status])
+              ? `（${VIDEO_STAGE_LABELS[vd.status].replace('...', '')} 中）`
+              : ''
+            throw new Error(`動画の解析がタイムアウトしました${stageLabel}。時間をおいて再試行してください。`)
           }
         }
-        throw new Error(errorText || '動画の解析に失敗しました（詳細は管理者にお問い合わせください）')
+
+        setVideoStageLabel('')
       }
-      const featureData = await featureRes.json().catch(() => null)
+
       if (featureData?.frames && Array.isArray(featureData.frames)) {
         setLatestFrames(featureData.frames as FrameData[])
       } else {
