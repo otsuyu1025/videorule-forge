@@ -9,7 +9,7 @@ const PRICE_INPUT_PER_M  = 1.00  // $1.00 / 1Mトークン
 const PRICE_OUTPUT_PER_M = 5.00  // $5.00 / 1Mトークン
 
 // inspectVideo/generateRuleCandidates で使うフレーム上限（大きいテキストプロンプトと共存するため抑制）
-const MAX_VISION_FRAMES = 10
+const MAX_VISION_FRAMES = 15
 // Anthropic の1リクエストあたりの画像上限
 const VISION_BATCH_SIZE = 20
 
