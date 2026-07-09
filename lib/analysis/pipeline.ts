@@ -16,7 +16,7 @@ ffmpeg.setFfprobePath(process.env.FFPROBE_PATH || 'ffprobe')
 function getConfig(): AnalysisConfig {
   return {
     frameInterval: parseInt(process.env.VIDEO_FRAME_INTERVAL || '1'),
-    maxFrames: parseInt(process.env.VIDEO_FRAME_MAX || '30'),
+    maxFrames: parseInt(process.env.VIDEO_FRAME_MAX || '10'),
   }
 }
 
