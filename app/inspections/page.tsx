@@ -167,6 +167,9 @@ export default function InspectionsPage() {
   const [analysisProgress, setAnalysisProgress] = useState<{ stage: string; current: number; total: number } | null>(null)
   const [videoStageLabel, setVideoStageLabel] = useState<string>('')
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [analyzingVideos, setAnalyzingVideos] = useState<Array<{ id: string; title: string; status: string }>>([])
+
+  const IN_PROGRESS_VIDEO_STATUSES = new Set(['pending', 'extracting_meta', 'extracting_frames', 'running_ocr', 'transcribing', 'generating_candidates'])
 
   const fetchHistory = async () => {
     const [inspRes, videosRes] = await Promise.all([
@@ -174,8 +177,15 @@ export default function InspectionsPage() {
       fetch('/api/videos?type=inspection'),
     ])
     const inspections: VideoInspection[] = await inspRes.json()
-    const videos: Array<{ id: string; title: string }> = await videosRes.json()
+    const videos: Array<{ id: string; title: string; status: string }> = await videosRes.json()
     const videoMap = Object.fromEntries(videos.map(v => [v.id, v.title]))
+
+    // 検品レコードがまだない解析中ビデオを抽出（画面を離れた後も「検査中」で表示するため）
+    const inspectionVideoIds = new Set(inspections.map(i => i.videoId))
+    setAnalyzingVideos(
+      videos.filter(v => IN_PROGRESS_VIDEO_STATUSES.has(v.status) && !inspectionVideoIds.has(v.id))
+    )
+
     setHistory(
       inspections
         .filter(i => i.status === 'completed' || i.status === 'running' || i.status === 'error')
@@ -203,13 +213,13 @@ export default function InspectionsPage() {
     })
   }, [])
 
-  // 検証中の検品がある間は5秒ごとに履歴を更新
+  // 検証中の検品または解析中の動画がある間は5秒ごとに履歴を更新
   useEffect(() => {
-    const hasRunning = history.some(h => h.inspection.status === 'running')
+    const hasRunning = history.some(h => h.inspection.status === 'running') || analyzingVideos.length > 0
     if (!hasRunning) return
     const timer = setInterval(fetchHistory, 5000)
     return () => clearInterval(timer)
-  }, [history])
+  }, [history, analyzingVideos])
 
   const handleInspect = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -284,8 +294,8 @@ export default function InspectionsPage() {
           const fRes = await fetch(`/api/videos/${video.id}/features`).catch(() => null)
           featureData = fRes?.ok ? await fRes.json().catch(() => null) : null
         } else {
-          // まだ処理中（またはOOMでフリーズ中）→ 最大3分間ポーリング
-          const ANALYSIS_MAX_WAIT = 3 * 60 * 1000
+          // まだ処理中（またはOOMでフリーズ中）→ 最大5分間ポーリング
+          const ANALYSIS_MAX_WAIT = 5 * 60 * 1000
           const analysisStarted = Date.now()
           let analysisResolved = false
 
@@ -298,6 +308,7 @@ export default function InspectionsPage() {
             if (vd.status && VIDEO_STAGE_LABELS[vd.status]) {
               setVideoStageLabel(VIDEO_STAGE_LABELS[vd.status])
             }
+            if (vd.analysisProgress) setAnalysisProgress(vd.analysisProgress)
 
             if (vd.status === 'analyzed') {
               const fRes = await fetch(`/api/videos/${video.id}/features`).catch(() => null)
@@ -554,17 +565,21 @@ export default function InspectionsPage() {
               <StepIndicator current={step} step="registering" label="動画を登録中" />
               <div>
                 <StepIndicator current={step} step="analyzing" label="AIが動画を解析中" />
-                {step === 'analyzing' && (videoStageLabel || analysisProgress) && (
+                {step === 'analyzing' && (
                   <div style={{ marginTop: 5, marginLeft: 36, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {videoStageLabel && !analysisProgress && (
+                    {videoStageLabel && (
                       <div style={{ fontSize: 12, color: '#999' }}>{videoStageLabel}</div>
                     )}
                     {analysisProgress && (
-                      <div style={{ fontSize: 12, color: '#999' }}>
+                      <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>
                         {analysisProgress.stage === 'ocr' ? 'テキスト認識（OCR）' : 'Vision OCR 補正'}:
-                        {' '}{analysisProgress.current} / {analysisProgress.total} フレーム完了
+                        {' '}{analysisProgress.current} / {analysisProgress.total} フレーム
                       </div>
                     )}
+                    <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.7, marginTop: 4, lineHeight: 1.6 }}>
+                      解析には通常 <strong>2〜8分</strong> 程度かかります。<br />
+                      ページを離れても解析は続きます。完了すると下の検品履歴に表示されます。
+                    </div>
                   </div>
                 )}
               </div>
@@ -613,10 +628,20 @@ export default function InspectionsPage() {
         </div>
       )}
 
-      {history.length > 0 && (
+      {(history.length > 0 || analyzingVideos.length > 0) && (
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', marginBottom: 16 }}>検品履歴</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {analyzingVideos.map(v => (
+              <div key={v.id} style={{ background: '#fff', border: '1px solid #FFD803', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 15, color: '#272343', marginBottom: 6 }}>{v.title}</div>
+                  <span style={{ fontSize: 12, background: '#FFF9E6', color: '#856404', padding: '2px 8px', borderRadius: 20, fontWeight: 700, border: '1px solid #FFD803' }}>
+                    検査中...
+                  </span>
+                </div>
+              </div>
+            ))}
             {history.map(({ inspection, videoTitle }) => {
               const isRunning = inspection.status === 'running'
               const isError = inspection.status === 'error'
