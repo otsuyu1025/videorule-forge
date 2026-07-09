@@ -180,10 +180,13 @@ export default function InspectionsPage() {
     const videos: Array<{ id: string; title: string; status: string }> = await videosRes.json()
     const videoMap = Object.fromEntries(videos.map(v => [v.id, v.title]))
 
-    // 検品レコードがまだない解析中ビデオを抽出（画面を離れた後も「検査中」で表示するため）
+    // 検品レコードがまだない解析中・エラーのビデオを抽出（画面を離れた後も履歴に表示するため）
     const inspectionVideoIds = new Set(inspections.map(i => i.videoId))
     setAnalyzingVideos(
-      videos.filter(v => IN_PROGRESS_VIDEO_STATUSES.has(v.status) && !inspectionVideoIds.has(v.id))
+      videos.filter(v =>
+        (IN_PROGRESS_VIDEO_STATUSES.has(v.status) || v.status === 'error') &&
+        !inspectionVideoIds.has(v.id)
+      )
     )
 
     setHistory(
@@ -372,12 +375,19 @@ export default function InspectionsPage() {
   const handleDelete = async (e: { stopPropagation(): void }, inspectionId: string, isStuck: boolean) => {
     e.stopPropagation()
     const msg = isStuck
-      ? '検証中のまま止まっている検品を削除しますか？'
+      ? '検品中のまま止まっている検品を削除しますか？'
       : 'この検品履歴を削除しますか？この操作は元に戻せません。'
     if (!confirm(msg)) return
     await fetch(`/api/inspections/${inspectionId}`, { method: 'DELETE' })
     if (expandedId === inspectionId) setExpandedId(null)
     setHistory(prev => prev.filter(h => h.inspection.id !== inspectionId))
+  }
+
+  const handleDeleteVideo = async (e: React.MouseEvent, videoId: string) => {
+    e.stopPropagation()
+    if (!confirm('この動画を削除しますか？この操作は元に戻せません。')) return
+    await fetch(`/api/videos/${videoId}`, { method: 'DELETE' })
+    setAnalyzingVideos(prev => prev.filter(v => v.id !== videoId))
   }
 
   const handleHumanOverride = async (inspectionId: string, result: InspectionResult, override: string) => {
@@ -632,16 +642,28 @@ export default function InspectionsPage() {
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', marginBottom: 16 }}>検品履歴</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {analyzingVideos.map(v => (
-              <div key={v.id} style={{ background: '#fff', border: '1px solid #FFD803', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 15, color: '#272343', marginBottom: 6 }}>{v.title}</div>
-                  <span style={{ fontSize: 12, background: '#FFF9E6', color: '#856404', padding: '2px 8px', borderRadius: 20, fontWeight: 700, border: '1px solid #FFD803' }}>
-                    検査中...
-                  </span>
+            {analyzingVideos.map(v => {
+              const isVideoError = v.status === 'error'
+              return (
+                <div key={v.id} style={{ background: '#fff', border: `1px solid ${isVideoError ? '#f8d7da' : '#FFD803'}`, borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 15, color: '#272343', marginBottom: 6 }}>{v.title}</div>
+                    <span style={{ fontSize: 12, background: isVideoError ? '#f8d7da' : '#FFF9E6', color: isVideoError ? '#721c24' : '#856404', padding: '2px 8px', borderRadius: 20, fontWeight: 700, border: `1px solid ${isVideoError ? '#f8d7da' : '#FFD803'}` }}>
+                      {isVideoError ? 'エラー' : '検品中...'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={e => handleDeleteVideo(e, v.id)}
+                    title="この動画を削除"
+                    style={{ background: 'none', border: '1px solid #eee', borderRadius: 6, cursor: 'pointer', padding: '4px 7px', color: '#ccc', fontSize: 14, lineHeight: 1, flexShrink: 0 }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#f8d7da'; (e.currentTarget as HTMLButtonElement).style.color = '#dc3545' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#eee'; (e.currentTarget as HTMLButtonElement).style.color = '#ccc' }}
+                  >
+                    🗑
+                  </button>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             {history.map(({ inspection, videoTitle }) => {
               const isRunning = inspection.status === 'running'
               const isError = inspection.status === 'error'
@@ -662,7 +684,7 @@ export default function InspectionsPage() {
                       <div style={{ display: 'flex', gap: 8 }}>
                         {isRunning && (
                           <span style={{ fontSize: 12, background: '#FFF9E6', color: '#856404', padding: '2px 8px', borderRadius: 20, fontWeight: 700, border: '1px solid #FFD803' }}>
-                            検証中...
+                            検品中...
                           </span>
                         )}
                         {isError && (
