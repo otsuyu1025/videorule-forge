@@ -294,8 +294,8 @@ export default function InspectionsPage() {
           const fRes = await fetch(`/api/videos/${video.id}/features`).catch(() => null)
           featureData = fRes?.ok ? await fRes.json().catch(() => null) : null
         } else {
-          // まだ処理中（またはOOMでフリーズ中）→ 最大5分間ポーリング
-          const ANALYSIS_MAX_WAIT = 5 * 60 * 1000
+          // まだ処理中（またはOOMでフリーズ中）→ 最大8分間ポーリング
+          const ANALYSIS_MAX_WAIT = 8 * 60 * 1000
           const analysisStarted = Date.now()
           let analysisResolved = false
 

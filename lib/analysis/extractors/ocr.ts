@@ -38,6 +38,9 @@ export async function runOcr(
 ): Promise<FrameData[]> {
   if (frames.length === 0) return []
 
+  // 初期化が始まったことを即座に通知（ワーカー読み込み中も 0/N が表示される）
+  await onProgress?.(0, frames.length)
+
   await ensureTessdata()
 
   console.log(`[Tesseract] OCR開始: ${frames.length}枚のフレームを処理（ローカル言語データ使用）`)
