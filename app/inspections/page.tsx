@@ -6,6 +6,14 @@ import type { VideoInspection, InspectionResult, FrameData } from '@/types'
 type Step = 'idle' | 'registering' | 'analyzing' | 'inspecting' | 'done' | 'error'
 type InputMode = 'url' | 'file'
 
+const VIDEO_STAGE_LABELS: Record<string, string> = {
+  extracting_meta:      '動画情報を取得中...',
+  extracting_frames:    'フレームを抽出中...',
+  running_ocr:          'テキストを読み取り中（OCR）...',
+  transcribing:         '音声を文字起こし中...',
+  generating_candidates:'ルール候補を生成中...',
+}
+
 /** テロップ表示タイムラインをクライアントサイドで構築 */
 function buildTelopTimeline(frames: FrameData[], frameInterval: number): string {
   const segments: Array<{ text: string; startTime: number; frameCount: number }> = []
@@ -157,6 +165,7 @@ export default function InspectionsPage() {
   const [transcriptionDisabled, setTranscriptionDisabled] = useState(false)
   const [frameIntervalSeconds, setFrameIntervalSeconds] = useState(1)
   const [analysisProgress, setAnalysisProgress] = useState<{ stage: string; current: number; total: number } | null>(null)
+  const [videoStageLabel, setVideoStageLabel] = useState<string>('')
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchHistory = async () => {
@@ -237,18 +246,23 @@ export default function InspectionsPage() {
 
       setStep('analyzing')
       setAnalysisProgress(null)
-      // 動画解析中はポーリングで進捗を取得
+      setVideoStageLabel('')
+      // 動画解析中はポーリングでステージ・進捗を取得
       progressPollRef.current = setInterval(async () => {
         const res = await fetch(`/api/videos/${video.id}`).catch(() => null)
         if (!res?.ok) return
         const vd = await res.json().catch(() => null)
         if (vd?.analysisProgress) setAnalysisProgress(vd.analysisProgress)
+        if (vd?.status && VIDEO_STAGE_LABELS[vd.status]) {
+          setVideoStageLabel(VIDEO_STAGE_LABELS[vd.status])
+        }
       }, 2000)
 
       const featureRes = await fetch(`/api/videos/${video.id}/features`, { method: 'POST' })
       clearInterval(progressPollRef.current)
       progressPollRef.current = null
       setAnalysisProgress(null)
+      setVideoStageLabel('')
 
       if (!featureRes.ok) {
         const body = await featureRes.json().catch(() => ({})) as Record<string, unknown>
@@ -489,10 +503,17 @@ export default function InspectionsPage() {
               <StepIndicator current={step} step="registering" label="動画を登録中" />
               <div>
                 <StepIndicator current={step} step="analyzing" label="AIが動画を解析中" />
-                {step === 'analyzing' && analysisProgress && (
-                  <div style={{ marginTop: 4, marginLeft: 36, fontSize: 12, color: '#999' }}>
-                    {analysisProgress.stage === 'ocr' ? 'テキスト認識（OCR）' : 'Vision OCR'}:
-                    {' '}{analysisProgress.current} / {analysisProgress.total} フレーム完了
+                {step === 'analyzing' && (videoStageLabel || analysisProgress) && (
+                  <div style={{ marginTop: 5, marginLeft: 36, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {videoStageLabel && !analysisProgress && (
+                      <div style={{ fontSize: 12, color: '#999' }}>{videoStageLabel}</div>
+                    )}
+                    {analysisProgress && (
+                      <div style={{ fontSize: 12, color: '#999' }}>
+                        {analysisProgress.stage === 'ocr' ? 'テキスト認識（OCR）' : 'Vision OCR 補正'}:
+                        {' '}{analysisProgress.current} / {analysisProgress.total} フレーム完了
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

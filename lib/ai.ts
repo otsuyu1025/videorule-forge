@@ -420,7 +420,8 @@ ${guideline.content}
   ]
 }`
 
-  const callParams = { model: MODEL, max_tokens: 4096, messages: [{ role: 'user' as const, content: prompt }] }
+  // Haiku 4.5 の出力上限は 8192 トークン。ガイドラインが長い場合に4096で打ち切られるため上限まで使う
+  const callParams = { model: MODEL, max_tokens: 8192, messages: [{ role: 'user' as const, content: prompt }] }
   await logTokenCount('ガイドライン解析', { model: MODEL, messages: callParams.messages })
 
   const message = await anthropic.messages.create(callParams)

@@ -50,7 +50,7 @@ export async function POST(
     const msg = error instanceof Error ? error.message : ''
     if (msg === 'TOKEN_LIMIT_EXCEEDED') {
       return Response.json({
-        error: 'ガイドラインのテキストが長すぎて処理できませんでした。テキストを分割して複数ファイルに分けてアップロードしてください。',
+        error: 'AIの出力がトークン上限に達しました。ガイドラインが非常に長い場合は複数ファイルに分割してアップロードしてください。',
       }, { status: 422 })
     }
     if (msg === 'JSON_PARSE_FAILED') {
