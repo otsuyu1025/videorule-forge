@@ -571,30 +571,31 @@ export default function InspectionsPage() {
           )}
 
           {isRunning && (
-            <div style={{ background: '#F5FCFC', borderRadius: 10, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <StepIndicator current={step} step="registering" label="動画を登録中" />
-              <div>
-                <StepIndicator current={step} step="analyzing" label="AIが動画を解析中" />
-                {step === 'analyzing' && (
-                  <div style={{ marginTop: 5, marginLeft: 36, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {videoStageLabel && (
-                      <div style={{ fontSize: 12, color: '#999' }}>{videoStageLabel}</div>
-                    )}
-                    {analysisProgress && (
-                      <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>
-                        {analysisProgress.stage === 'ocr' ? 'テキスト認識（OCR）' : 'Vision OCR 補正'}:
-                        {' '}{analysisProgress.current} / {analysisProgress.total} フレーム
-                      </div>
-                    )}
-                    <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.7, marginTop: 4, lineHeight: 1.6 }}>
-                      解析には通常 <strong>2〜8分</strong> 程度かかります。<br />
-                      ページを離れても解析は続きます。完了すると下の検品履歴に表示されます。
-                    </div>
-                  </div>
-                )}
+            <>
+              <div style={{ fontSize: 13, color: '#2D334A', opacity: 0.75, lineHeight: 1.7 }}>
+                ページを離れても解析は続きます。完了すると下の検品履歴に表示されます。
               </div>
-              <StepIndicator current={step} step="inspecting" label="動画制作ルールと照合中" />
-            </div>
+              <div style={{ background: '#F5FCFC', borderRadius: 10, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <StepIndicator current={step} step="registering" label="動画を登録中" />
+                <div>
+                  <StepIndicator current={step} step="analyzing" label="AIが動画を解析中" />
+                  {step === 'analyzing' && (
+                    <div style={{ marginTop: 5, marginLeft: 36, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {videoStageLabel && (
+                        <div style={{ fontSize: 12, color: '#999' }}>{videoStageLabel}</div>
+                      )}
+                      {analysisProgress && (
+                        <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>
+                          {analysisProgress.stage === 'ocr' ? 'テキスト認識（OCR）' : 'Vision OCR 補正'}:
+                          {' '}{analysisProgress.current} / {analysisProgress.total} フレーム
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <StepIndicator current={step} step="inspecting" label="動画制作ルールと照合中" />
+              </div>
+            </>
           )}
 
           {step === 'error' && (
