@@ -266,11 +266,16 @@ export default function InspectionsPage() {
 
       if (!featureRes.ok) {
         const body = await featureRes.json().catch(() => ({})) as Record<string, unknown>
-        throw new Error(
-          (typeof body.error === 'string' && body.error) ||
-          (typeof body.message === 'string' && body.message) ||
-          '動画の解析に失敗しました'
-        )
+        let errorText = (typeof body.error === 'string' && body.error) || ''
+        // Railway タイムアウト等でサーバーが応答しなかった場合、DB の errorMessage を確認
+        if (!errorText) {
+          const vRes = await fetch(`/api/videos/${video.id}`).catch(() => null)
+          if (vRes?.ok) {
+            const vData = await vRes.json().catch(() => null)
+            errorText = (typeof vData?.errorMessage === 'string' && vData.errorMessage) || ''
+          }
+        }
+        throw new Error(errorText || '動画の解析に失敗しました（詳細は管理者にお問い合わせください）')
       }
       const featureData = await featureRes.json().catch(() => null)
       if (featureData?.frames && Array.isArray(featureData.frames)) {

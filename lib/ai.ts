@@ -219,38 +219,44 @@ export async function extractFrameTexts(
   let sampled = frames.filter(f => f.timestamp % visionInterval === 0)
   if (sampled.length === 0) sampled = [frames[0]]
 
-  const available = sampled
-    .map(f => {
-      let base64: string | null = null
-      if (f.imagePath && existsSync(f.imagePath)) {
-        try { base64 = readFileSync(f.imagePath).toString('base64') } catch { /* ignore */ }
-      }
-      return { ...f, base64 }
-    })
-    .filter(f => f.base64 !== null)
-
-  if (available.length === 0) return frames
+  // ファイルが存在するものだけ絞り込む（base64 はまだ読まない）
+  const sampledMeta = sampled.filter(f => f.imagePath && existsSync(f.imagePath))
+  if (sampledMeta.length === 0) return frames
 
   const textMap: Record<number, string> = {}
-  // Anthropic の上限（20枚）ごとにバッチ分割
-  const batches: typeof available[] = []
-  for (let i = 0; i < available.length; i += VISION_BATCH_SIZE) {
-    batches.push(available.slice(i, i + VISION_BATCH_SIZE))
-  }
-  console.log(`[VisionOCR] ${available.length}枚を${batches.length}バッチで処理`)
+  const totalBatches = Math.ceil(sampledMeta.length / VISION_BATCH_SIZE)
+  console.log(`[VisionOCR] ${sampledMeta.length}枚を${totalBatches}バッチで処理（遅延読み込み）`)
 
   let processed = 0
-  for (const batch of batches) {
+  for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
+    const batchMeta = sampledMeta.slice(batchIdx * VISION_BATCH_SIZE, (batchIdx + 1) * VISION_BATCH_SIZE)
+
+    // このバッチ分だけ base64 を読み込む（処理後にスコープを抜けてGCに解放される）
+    const batchWithImages: Array<{ timestamp: number; ocrText: string; base64: string }> = []
+    for (const f of batchMeta) {
+      try {
+        const base64 = readFileSync(f.imagePath!).toString('base64')
+        batchWithImages.push({ timestamp: f.timestamp, ocrText: f.ocrText, base64 })
+      } catch { /* ファイル読み込み失敗はスキップ */ }
+    }
+
+    if (batchWithImages.length === 0) {
+      processed += batchMeta.length
+      await onProgress?.(processed, sampledMeta.length)
+      continue
+    }
+
     const content: Array<Anthropic.TextBlockParam | Anthropic.ImageBlockParam> = [
       { type: 'text', text: '各フレーム画像に表示されているテキスト（テロップ・字幕・ロゴ文字など）を正確に読み取ってください。テキストがない場合は空文字にしてください。\n\nJSON形式で回答:\n{"frames":[{"timestamp":<秒数>,"text":"<検出テキスト>"}]}' },
     ]
-    for (const f of batch) {
-      content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.base64! } })
+    for (const f of batchWithImages) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.base64 } })
       content.push({ type: 'text', text: `↑ ${f.timestamp}秒時点` })
     }
+
     try {
       const message = await anthropic.messages.create({ model: MODEL, max_tokens: 1024, messages: [{ role: 'user', content }] })
-      logUsage(`Vision OCR バッチ${batches.indexOf(batch) + 1}/${batches.length}`, message.usage)
+      logUsage(`Vision OCR バッチ${batchIdx + 1}/${totalBatches}`, message.usage)
       const raw = message.content[0].type === 'text' ? message.content[0].text : ''
       const jsonMatch = raw.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
@@ -260,8 +266,10 @@ export async function extractFrameTexts(
     } catch (e) {
       console.error('[VisionOCR] バッチ失敗:', e instanceof Error ? e.message : e)
     }
-    processed += batch.length
-    await onProgress?.(processed, available.length)
+
+    processed += batchWithImages.length
+    await onProgress?.(processed, sampledMeta.length)
+    // batchWithImages はここでスコープを抜け、base64 データが GC の対象になる
   }
 
   const corrected = frames.map(f => ({
