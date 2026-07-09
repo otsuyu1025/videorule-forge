@@ -98,6 +98,7 @@ export default function RulesPage() {
   )
 
   const categories = [...new Set(filtered.map(r => r.category))]
+  const allCategories = [...new Set(rules.map(r => r.category))]
 
   // 検品プロンプトのトークン予算に基づく文字数制限
   // 出力 max_tokens=4096 / 1件あたり約100トークン = 約40件、1件100字換算 = 4,000字
@@ -201,13 +202,17 @@ export default function RulesPage() {
                   カテゴリ <span style={{ color: '#e74c3c' }}>*</span>
                 </label>
                 <input
+                  list="add-category-options"
                   value={addForm.category}
                   onChange={e => setAddForm({ ...addForm, category: e.target.value })}
-                  placeholder="例: ブランドカラー"
+                  placeholder="例: ブランドカラー（既存から選ぶか入力）"
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E3F6F5', fontSize: 14, color: '#272343', boxSizing: 'border-box', outline: 'none' }}
                   onFocus={e => { e.target.style.borderColor = '#BAE8E8' }}
                   onBlur={e => { e.target.style.borderColor = '#E3F6F5' }}
                 />
+                <datalist id="add-category-options">
+                  {allCategories.map(cat => <option key={cat} value={cat} />)}
+                </datalist>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#272343', marginBottom: 6 }}>

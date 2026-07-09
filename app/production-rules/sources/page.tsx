@@ -10,6 +10,11 @@ type SourceItem =
   | { kind: 'sampleVideo'; data: Video }
   | { kind: 'guideline'; data: Guideline }
 
+const IN_PROGRESS_STATUSES = [
+  'downloading', 'extracting_meta', 'extracting_frames',
+  'running_ocr', 'transcribing', 'generating_candidates', 'analyzing',
+]
+
 function SourceBadge({ kind }: { kind: 'sampleVideo' | 'guideline' }) {
   return (
     <span style={{
@@ -32,8 +37,9 @@ function StatusBadge({ status }: { status: string }) {
     extracting_frames: { label: 'フレーム抽出中', color: '#FFD803' },
     running_ocr: { label: 'テキスト読み取り中', color: '#FFD803' },
     transcribing: { label: '音声文字起こし中', color: '#FFD803' },
+    awaiting_review: { label: 'OCR確認待ち', color: '#f39c12' },
     generating_candidates: { label: 'ルール候補生成中', color: '#FFD803' },
-    analyzed: { label: '解析済', color: '#27ae60' },
+    analyzed: { label: '解析完了', color: '#27ae60' },
     error: { label: 'エラー', color: '#e74c3c' },
   }
   const s = map[status] || { label: status, color: '#999' }
@@ -47,23 +53,45 @@ export default function SourcesPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    Promise.all([
+  const [guidCandCounts, setGuidCandCounts] = useState<Record<string, number>>({})
+
+  const buildItems = (videos: Video[], guidelines: Guideline[]): SourceItem[] =>
+    [
+      ...(videos as Video[]).map(v => ({ kind: 'sampleVideo' as const, data: v })),
+      ...(guidelines as Guideline[]).map(g => ({ kind: 'guideline' as const, data: g })),
+    ].sort((a, b) => {
+      const dateA = a.kind === 'sampleVideo' ? a.data.createdAt : a.data.updatedAt
+      const dateB = b.kind === 'sampleVideo' ? b.data.createdAt : b.data.updatedAt
+      return new Date(dateB).getTime() - new Date(dateA).getTime()
+    })
+
+  const fetchAll = async () => {
+    const [videos, guidelines, candidates] = await Promise.all([
       fetch('/api/videos?type=sample').then(r => r.json()),
       fetch('/api/guidelines').then(r => r.json()),
-    ]).then(([videos, guidelines]) => {
-      const all: SourceItem[] = [
-        ...(videos as Video[]).map(v => ({ kind: 'sampleVideo' as const, data: v })),
-        ...(guidelines as Guideline[]).map(g => ({ kind: 'guideline' as const, data: g })),
-      ].sort((a, b) => {
-        const dateA = a.kind === 'sampleVideo' ? a.data.createdAt : a.data.updatedAt
-        const dateB = b.kind === 'sampleVideo' ? b.data.createdAt : b.data.updatedAt
-        return new Date(dateB).getTime() - new Date(dateA).getTime()
-      })
-      setItems(all)
-      setLoading(false)
-    })
+      fetch('/api/rule-candidates').then(r => r.json()),
+    ])
+    const counts: Record<string, number> = {}
+    for (const c of candidates) {
+      if (c.guidelineId) counts[c.guidelineId] = (counts[c.guidelineId] || 0) + 1
+    }
+    setGuidCandCounts(counts)
+    setItems(buildItems(videos, guidelines))
+  }
+
+  useEffect(() => {
+    fetchAll().then(() => setLoading(false))
   }, [])
+
+  // 解析中の動画がある間は5秒ごとにステータスを再取得
+  useEffect(() => {
+    const hasInProgress = items.some(
+      item => item.kind === 'sampleVideo' && IN_PROGRESS_STATUSES.includes(item.data.status)
+    )
+    if (!hasInProgress) return
+    const interval = setInterval(fetchAll, 5000)
+    return () => clearInterval(interval)
+  }, [items])
 
   const filtered = filter === 'all' ? items : items.filter(i => i.kind === filter)
 
@@ -133,63 +161,123 @@ export default function SourcesPage() {
           {filtered.map(item => {
             if (item.kind === 'sampleVideo') {
               const v = item.data
-              return (
-                <Link key={v.id} href={`/videos/${v.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{
-                    background: '#fff', border: '1px solid #E3F6F5', borderRadius: 12,
-                    padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 16,
-                    cursor: 'pointer',
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                        <SourceBadge kind="sampleVideo" />
-                        <StatusBadge status={v.status} />
-                      </div>
-                      <div style={{ fontWeight: 600, fontSize: 16, color: '#272343' }}>{v.title}</div>
-                      {v.url && <div style={{ fontSize: 12, color: '#999', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.url}</div>}
+              const isAnalyzed = v.status === 'analyzed'
+              const cardInner = (
+                <div style={{
+                  background: isAnalyzed ? '#f0faf5' : '#fff',
+                  border: isAnalyzed ? '1px solid #27ae60' : '1px solid #E3F6F5',
+                  borderRadius: 12, padding: '18px 22px',
+                  display: 'flex', alignItems: 'center', gap: 16,
+                  cursor: isAnalyzed ? 'default' : 'pointer',
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                      <SourceBadge kind="sampleVideo" />
+                      <StatusBadge status={v.status} />
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 11, color: '#BAE8E8' }}>
-                        {new Date(v.createdAt).toLocaleDateString('ja-JP')}
-                      </div>
-                      <div style={{ color: '#BAE8E8', fontSize: 18, marginTop: 4 }}>→</div>
-                    </div>
+                    <div style={{ fontWeight: 600, fontSize: 16, color: '#272343' }}>{v.title}</div>
+                    {v.url && <div style={{ fontSize: 12, color: '#999', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.url}</div>}
                   </div>
-                </Link>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                    {isAnalyzed ? (
+                      <>
+                        <Link
+                          href={`/videos/${v.id}`}
+                          onClick={e => e.stopPropagation()}
+                          style={{ fontSize: 12, color: '#999', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                        >
+                          詳細
+                        </Link>
+                        <Link
+                          href="/production-rules/candidates"
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            background: '#272343', color: '#FFD803',
+                            padding: '8px 16px', borderRadius: 8,
+                            textDecoration: 'none', fontWeight: 700, fontSize: 13,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          ルール候補を確認 →
+                        </Link>
+                      </>
+                    ) : (
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 11, color: '#BAE8E8' }}>
+                          {new Date(v.createdAt).toLocaleDateString('ja-JP')}
+                        </div>
+                        <div style={{ color: '#BAE8E8', fontSize: 18, marginTop: 4 }}>→</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )
+              return isAnalyzed
+                ? <div key={v.id}>{cardInner}</div>
+                : <Link key={v.id} href={`/videos/${v.id}`} style={{ textDecoration: 'none' }}>{cardInner}</Link>
             }
 
             const g = item.data
-            return (
-              <Link key={g.id} href={`/guidelines/${g.id}`} style={{ textDecoration: 'none' }}>
-                <div style={{
-                  background: '#fff', border: '1px solid #E3F6F5', borderRadius: 12,
-                  padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 16,
-                  cursor: 'pointer',
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                      <SourceBadge kind="guideline" />
-                      {g.fileName && (
-                        <span style={{ fontSize: 11, color: '#999' }}>
-                          {g.fileType?.toUpperCase()} ファイル
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontWeight: 600, fontSize: 16, color: '#272343' }}>{g.title}</div>
-                    {g.fileName && (
-                      <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>📎 {g.fileName}</div>
-                    )}
+            const gCount = guidCandCounts[g.id] ?? 0
+            const gAnalyzed = gCount > 0
+            const gCardInner = (
+              <div style={{
+                background: gAnalyzed ? '#f0faf5' : '#fff',
+                border: gAnalyzed ? '1px solid #27ae60' : '1px solid #E3F6F5',
+                borderRadius: 12, padding: '18px 22px',
+                display: 'flex', alignItems: 'center', gap: 16,
+                cursor: gAnalyzed ? 'default' : 'pointer',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <SourceBadge kind="guideline" />
+                    {gAnalyzed
+                      ? <span style={{ fontSize: 12, color: '#27ae60', fontWeight: 600 }}>● 解析完了</span>
+                      : g.fileName && <span style={{ fontSize: 11, color: '#999' }}>{g.fileType?.toUpperCase()} ファイル</span>
+                    }
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: 11, color: '#BAE8E8' }}>
-                      {new Date(g.updatedAt).toLocaleDateString('ja-JP')}
-                    </div>
-                    <div style={{ color: '#BAE8E8', fontSize: 18, marginTop: 4 }}>→</div>
-                  </div>
+                  <div style={{ fontWeight: 600, fontSize: 16, color: '#272343' }}>{g.title}</div>
+                  {g.fileName && (
+                    <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>📎 {g.fileName}</div>
+                  )}
                 </div>
-              </Link>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                  {gAnalyzed ? (
+                    <>
+                      <Link
+                        href={`/guidelines/${g.id}`}
+                        onClick={e => e.stopPropagation()}
+                        style={{ fontSize: 12, color: '#999', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                      >
+                        詳細
+                      </Link>
+                      <Link
+                        href="/production-rules/candidates"
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          background: '#272343', color: '#FFD803',
+                          padding: '8px 16px', borderRadius: 8,
+                          textDecoration: 'none', fontWeight: 700, fontSize: 13,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        ルール候補を確認 →
+                      </Link>
+                    </>
+                  ) : (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 11, color: '#BAE8E8' }}>
+                        {new Date(g.updatedAt).toLocaleDateString('ja-JP')}
+                      </div>
+                      <div style={{ color: '#BAE8E8', fontSize: 18, marginTop: 4 }}>→</div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )
+            return gAnalyzed
+              ? <div key={g.id}>{gCardInner}</div>
+              : <Link key={g.id} href={`/guidelines/${g.id}`} style={{ textDecoration: 'none' }}>{gCardInner}</Link>
           })}
         </div>
       )}

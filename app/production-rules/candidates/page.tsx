@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { RuleCandidate } from '@/types'
 
-type FilterStatus = 'pending' | 'approved'
-
 function SourceTag({ candidate }: { candidate: RuleCandidate }) {
   if (!candidate.source) return null
   const isVideo = candidate.source.type === 'sampleVideo'
@@ -179,17 +177,16 @@ function CandidateCard({
 
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState<RuleCandidate[]>([])
-  const [filter, setFilter] = useState<FilterStatus>('pending')
   const [loading, setLoading] = useState(true)
 
   const fetchCandidates = () => {
     setLoading(true)
-    fetch(`/api/rule-candidates?status=${filter}`)
+    fetch('/api/rule-candidates?status=pending')
       .then(r => r.json())
       .then(d => { setCandidates(d); setLoading(false) })
   }
 
-  useEffect(() => { fetchCandidates() }, [filter])
+  useEffect(() => { fetchCandidates() }, [])
 
   const handleAction = async (id: string, status: 'approved' | 'rejected') => {
     await fetch(`/api/rule-candidates/${id}`, {
@@ -209,11 +206,6 @@ export default function CandidatesPage() {
     fetchCandidates()
   }
 
-  const tabs = [
-    { key: 'pending' as FilterStatus, label: '承認待ち' },
-    { key: 'approved' as FilterStatus, label: '承認済み' },
-  ]
-
   return (
     <div style={{ padding: 48, maxWidth: 860, margin: '0 auto' }}>
       <div style={{ marginBottom: 4 }}>
@@ -228,62 +220,31 @@ export default function CandidatesPage() {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>ルール候補</h1>
         <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
           AIが知識ソースを解析して提案したルール候補です。<br />
-          承認したものだけが動画制作ルールになります。
+          承認するとルール管理に表示され、動画制作ルールとして使うことができます。
         </p>
-      </div>
-
-      <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '2px solid #E3F6F5' }}>
-        {tabs.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            style={{
-              padding: '10px 24px', border: 'none', background: 'transparent',
-              fontSize: 14, fontWeight: filter === tab.key ? 700 : 400,
-              color: filter === tab.key ? '#272343' : '#999',
-              borderBottom: filter === tab.key ? '2px solid #272343' : 'none',
-              cursor: 'pointer', marginBottom: -2,
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
       </div>
 
       {loading ? (
         <div style={{ color: '#2D334A', opacity: 0.6 }}>読み込み中...</div>
       ) : candidates.length === 0 ? (
         <div style={{ background: '#E3F6F5', borderRadius: 14, padding: 48, textAlign: 'center' }}>
-          <div style={{ fontSize: 36, marginBottom: 14 }}>
-            {filter === 'pending' ? '💡' : '✅'}
-          </div>
+          <div style={{ fontSize: 36, marginBottom: 14 }}>💡</div>
           <div style={{ fontWeight: 700, fontSize: 17, color: '#272343', marginBottom: 8 }}>
-            {filter === 'pending' ? '承認待ちのルール候補はありません' : 'まだ承認したルール候補がありません'}
+            承認待ちのルール候補はありません
           </div>
-          {filter === 'pending' && (
-            <div style={{ fontSize: 14, color: '#2D334A', opacity: 0.8, lineHeight: 1.8 }}>
-              知識ソースを登録・解析するとルール候補が生成されます。
-              <br />
-              <Link href="/production-rules/sources" style={{ color: '#272343', fontWeight: 700 }}>
-                知識ソースを追加 →
-              </Link>
-            </div>
-          )}
+          <div style={{ fontSize: 14, color: '#2D334A', opacity: 0.8, lineHeight: 1.8 }}>
+            知識ソースを登録・解析するとルール候補が生成されます。
+            <br />
+            <Link href="/production-rules/sources" style={{ color: '#272343', fontWeight: 700 }}>
+              知識ソースを追加 →
+            </Link>
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {candidates.map(c => (
             <CandidateCard key={c.id} candidate={c} onAction={handleAction} onEdit={handleEdit} />
           ))}
-        </div>
-      )}
-
-      {filter === 'approved' && candidates.length > 0 && (
-        <div style={{ marginTop: 16, padding: '14px 18px', background: '#E3F6F5', borderRadius: 10, fontSize: 13, color: '#2D334A', opacity: 0.8 }}>
-          ✅ 承認済みのルール候補は「ルール管理」に追加されています。
-          <Link href="/production-rules/rules" style={{ color: '#272343', fontWeight: 600, marginLeft: 8 }}>
-            確認する →
-          </Link>
         </div>
       )}
     </div>

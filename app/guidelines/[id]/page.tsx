@@ -14,6 +14,14 @@ export default function GuidelineDetailPage() {
   const [existingCount, setExistingCount] = useState<number | null>(null)
   const [analyzeError, setAnalyzeError] = useState('')
   const [lastRunCount, setLastRunCount] = useState<number | null>(null)
+  const [analyzeStartCount, setAnalyzeStartCount] = useState<number | null>(null)
+
+  const fetchCandidates = async (): Promise<number> => {
+    const data = await fetch(`/api/rule-candidates?guidelineId=${id}`).then(r => r.json())
+    const count = Array.isArray(data) ? data.length : 0
+    setExistingCount(count)
+    return count
+  }
 
   useEffect(() => {
     Promise.all([
@@ -27,6 +35,31 @@ export default function GuidelineDetailPage() {
     })
   }, [id])
 
+  // バックエンドが Railway タイムアウト後も処理を続けた場合のフォールバックポーリング
+  // analyzing=true かつ HTTP が途切れた場合に、最大3分間候補の出現を監視する
+  useEffect(() => {
+    if (!analyzing || analyzeStartCount === null) return
+    const startCount = analyzeStartCount  // narrow to number for closure
+    const started = Date.now()
+    const MAX_WAIT = 3 * 60 * 1000
+    const interval = setInterval(async () => {
+      if (Date.now() - started > MAX_WAIT) {
+        setAnalyzeError('解析がタイムアウトしました。もう一度お試しください。')
+        setAnalyzing(false)
+        return
+      }
+      try {
+        const count = await fetchCandidates()
+        if (count > startCount) {
+          setLastRunCount(count - startCount)
+          setAnalyzeError('')
+          setAnalyzing(false)
+        }
+      } catch { /* ignore */ }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [analyzing, id, analyzeStartCount])
+
   const handleDelete = async () => {
     if (!confirm('このガイドラインを削除しますか？\n一度削除すると元に戻せません。')) return
     await fetch(`/api/guidelines/${id}`, { method: 'DELETE' })
@@ -34,8 +67,11 @@ export default function GuidelineDetailPage() {
   }
 
   const handleAnalyze = async () => {
+    const startCount = existingCount ?? 0
+    setAnalyzeStartCount(startCount)
     setAnalyzing(true)
     setAnalyzeError('')
+    let networkError = false
     try {
       const res = await fetch(`/api/guidelines/${id}/candidates`, { method: 'POST' })
       const data = await res.json()
@@ -47,9 +83,21 @@ export default function GuidelineDetailPage() {
         setExistingCount(prev => (prev ?? 0) + newCount)
       }
     } catch {
-      setAnalyzeError('通信エラーが発生しました')
+      // ネットワーク切断 — Railway プロキシが 30s でタイムアウトしてもバックエンドは処理中の可能性がある
+      networkError = true
+      setAnalyzeError('接続が切れました。バックエンドで処理が継続している可能性があります。しばらくお待ちください…')
     } finally {
-      setAnalyzing(false)
+      // 最新の候補件数を取得
+      const currentCount = await fetchCandidates().catch(() => startCount)
+      if (currentCount > startCount) {
+        setLastRunCount(currentCount - startCount)
+        setAnalyzeError('')
+        setAnalyzing(false)
+      } else if (!networkError) {
+        // API エラーまたは正常完了 — ポーリング不要
+        setAnalyzing(false)
+      }
+      // networkError かつ候補なし → analyzing=true のままポーリングに委ねる
     }
   }
 
