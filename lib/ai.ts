@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { readFileSync, existsSync } from 'fs'
 import path from 'path'
-import type { VideoFeature, ProductionRule, InspectionResult, Guideline, FrameData } from '@/types'
+import type { VideoFeature, ProductionRule, InspectionResult, Guideline, FrameData, YakujiSettings } from '@/types'
 
 const MODEL = 'claude-haiku-4-5-20251001'
 // Haiku 4.5 料金（2026年7月時点）
@@ -405,6 +405,80 @@ ${rulesText}
     return parsed.results || []
   } catch {
     console.error('[AI] JSON parse error (results):', jsonMatch[0].slice(0, 200))
+    return []
+  }
+}
+
+export async function inspectYakuji(
+  feature: VideoFeature,
+  yakuji: YakujiSettings,
+): Promise<InspectionResult[]> {
+  if (!yakuji.enabled || !yakuji.rules || yakuji.rules.length === 0) return []
+
+  const textSources: string[] = []
+  if (feature.ocrTexts && feature.ocrTexts.length > 0) {
+    textSources.push(`【字幕・テロップ（OCR）】\n${feature.ocrTexts.join('\n')}`)
+  }
+  if (feature.transcription) {
+    textSources.push(`【音声文字起こし】\n${feature.transcription}`)
+  }
+  if (textSources.length === 0) {
+    textSources.push('（テキスト・音声データなし）')
+  }
+
+  const rulesText = yakuji.rules.map(r =>
+    `[${r.id}] ${r.label}: ${r.description}\nNG例: ${r.examples_ng.join('、')}`
+  ).join('\n\n')
+
+  const prompt = `あなたは日本の薬機法（医薬品医療機器等法）の広告審査の専門家です。
+以下の動画テキスト・音声内容を、薬機法の観点から審査してください。
+
+${textSources.join('\n\n')}
+
+【薬機法判定カテゴリ】
+${rulesText}
+
+各カテゴリについて判定し、JSONで回答してください。
+NGがある場合は各カテゴリを個別に、NGがない場合は全体をまとめて1件だけ出力してください：
+{
+  "violations": [
+    {
+      "ruleId": "yakuji_カテゴリID または yakuji_overall",
+      "ruleContent": "薬機法チェック項目の名称",
+      "category": "薬機法",
+      "judgment": "OK" | "NG",
+      "reason": "判定理由（該当テキストを引用し、なぜ問題か・または問題ない理由を具体的に）",
+      "confidence": 0.0〜1.0
+    }
+  ]
+}
+違反がない場合は violations に ruleId="yakuji_overall" のOK結果を1件だけ含めてください。`
+
+  const callParams = { model: MODEL, max_tokens: 2048, messages: [{ role: 'user' as const, content: prompt }] }
+  await logTokenCount('薬機法検品', { model: MODEL, messages: callParams.messages })
+
+  const message = await anthropic.messages.create(callParams)
+  logUsage('薬機法検品', message.usage)
+
+  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) return []
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0])
+    const violations = (parsed.violations || []) as InspectionResult[]
+    if (violations.length === 0) {
+      return [{
+        ruleId: 'yakuji_overall',
+        ruleContent: '薬機法（医薬品医療機器等法）コンプライアンス',
+        category: '薬機法',
+        judgment: 'OK',
+        reason: '薬機法違反の疑いのある表現は検出されませんでした。',
+        confidence: 1.0,
+      }]
+    }
+    return violations.map(v => ({ ...v, category: '薬機法' }))
+  } catch {
     return []
   }
 }

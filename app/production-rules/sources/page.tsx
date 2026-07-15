@@ -122,8 +122,8 @@ export default function SourcesPage() {
         </Link>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
-        {(['all', 'guideline', 'sampleVideo'] as FilterType[]).map(f => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
+        {(['all', 'guideline'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
             border: filter === f ? '2px solid #272343' : '1px solid #BAE8E8',
@@ -131,9 +131,27 @@ export default function SourcesPage() {
             color: filter === f ? '#FFD803' : '#2D334A',
             fontWeight: filter === f ? 700 : 400, fontSize: 13,
           }}>
-            {{ all: 'すべて', sampleVideo: 'お手本動画', guideline: 'ガイドライン' }[f]}
+            {f === 'all' ? 'すべて' : 'ガイドライン'}
           </button>
         ))}
+        <Link href="/production-rules/yakuji" style={{
+          padding: '6px 16px', borderRadius: 20,
+          border: '1px solid #BAE8E8',
+          background: '#fff', color: '#2D334A',
+          fontWeight: 400, fontSize: 13, textDecoration: 'none',
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+        }}>
+          薬機法 →
+        </Link>
+        <button onClick={() => setFilter('sampleVideo')} style={{
+          padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
+          border: filter === 'sampleVideo' ? '2px solid #272343' : '1px solid #BAE8E8',
+          background: filter === 'sampleVideo' ? '#272343' : '#fff',
+          color: filter === 'sampleVideo' ? '#FFD803' : '#2D334A',
+          fontWeight: filter === 'sampleVideo' ? 700 : 400, fontSize: 13,
+        }}>
+          お手本動画
+        </button>
       </div>
 
       {loading ? (

@@ -122,6 +122,7 @@ export interface RuleCandidate {
 export interface InspectionResult {
   ruleId: string
   ruleContent: string
+  category?: string
   judgment: JudgmentResult
   reason: string
   confidence: number
@@ -134,8 +135,26 @@ export interface VideoInspection {
   videoId: string
   status: InspectionStatus
   results: InspectionResult[]
+  yakujiReference?: { sourceName: string; sourceUpdatedAt?: string }
   createdAt: string
   completedAt?: string
+}
+
+export interface YakujiRule {
+  id: string
+  label: string
+  description: string
+  examples_ng: string[]
+  examples_ok?: string[]
+}
+
+export interface YakujiSettings {
+  enabled: boolean
+  source_name?: string
+  source_url?: string
+  source_updated_at?: string
+  imported_at?: string
+  rules: YakujiRule[]
 }
 
 export interface InspectionReport {
@@ -163,6 +182,7 @@ export type SnsBrowser = 'chrome' | 'firefox' | 'safari' | 'edge' | 'brave' | 'c
 export interface AppSettings {
   snsBrowser?: SnsBrowser
   frameRetentionDays?: number  // フレーム画像の保持日数（デフォルト30日）
+  yakuji?: YakujiSettings
 }
 
 export interface DbSchema {

@@ -1,8 +1,21 @@
 import { NextRequest } from 'next/server'
+import { readFileSync, existsSync } from 'fs'
+import path from 'path'
 import { getDb } from '@/lib/db'
-import { inspectVideo } from '@/lib/ai'
+import { inspectVideo, inspectYakuji } from '@/lib/ai'
 import { v4 as uuidv4 } from 'uuid'
-import type { VideoInspection, InspectionReport } from '@/types'
+import type { VideoInspection, InspectionReport, YakujiSettings } from '@/types'
+
+const YAKUJI_PATH = path.join(process.cwd(), 'data', 'rules', 'yakuji.json')
+
+function readYakuji(): YakujiSettings | null {
+  if (!existsSync(YAKUJI_PATH)) return null
+  try {
+    return JSON.parse(readFileSync(YAKUJI_PATH, 'utf-8')) as YakujiSettings
+  } catch {
+    return null
+  }
+}
 
 export async function GET(request: NextRequest) {
   const db = await getDb()
@@ -46,23 +59,39 @@ export async function POST(request: NextRequest) {
       : null
     const visionInterval: number = (db.data.settings as Record<string, unknown> | undefined)?.visionFrameInterval as number
       ?? parseInt(process.env.VISION_FRAME_INTERVAL || '3')
+
+    // 通常ルールによる検品
     const results = await inspectVideo(feature, rules, originalDims, visionInterval)
+
+    // 薬機法チェック（有効時のみ）
+    const yakuji = readYakuji()
+    if (yakuji?.enabled) {
+      const yakujiResults = await inspectYakuji(feature, yakuji)
+      results.push(...yakujiResults)
+      inspection.yakujiReference = {
+        sourceName: yakuji.source_name ?? '医薬品等適正広告基準',
+        sourceUpdatedAt: yakuji.source_updated_at ?? undefined,
+      }
+    }
+
     inspection.results = results
     inspection.status = 'completed'
     inspection.completedAt = new Date().toISOString()
 
-    const issues = results.filter(r => r.judgment === 'NG' || r.judgment === '要確認')
+    const nonYakujiIssues = results.filter(
+      r => r.category !== '薬機法' && (r.judgment === 'NG' || r.judgment === '要確認')
+    )
     const report: InspectionReport = {
       id: uuidv4(),
       inspectionId: inspection.id,
       videoId,
-      issues: issues.map(i => ({
+      issues: nonYakujiIssues.map(i => ({
         ruleContent: i.ruleContent,
         judgment: i.judgment,
         reason: i.reason,
       })),
-      suggestions: issues.map(i => i.reason),
-      comments: `検査完了。${results.length}件のルールを確認しました。${issues.length}件の問題が見つかりました。`,
+      suggestions: nonYakujiIssues.map(i => i.reason),
+      comments: `検査完了。${results.length}件のルールを確認しました。${nonYakujiIssues.length}件の問題が見つかりました。`,
       createdAt: new Date().toISOString(),
     }
     db.data.inspectionReports.push(report)

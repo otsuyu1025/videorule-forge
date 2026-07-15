@@ -406,9 +406,16 @@ export default function InspectionsPage() {
   const isRunning = ['registering', 'analyzing', 'inspecting'].includes(step)
 
   const renderResults = (inspection: VideoInspection) => {
-    const okCount = inspection.results.filter(r => (r.humanOverride || r.judgment) === 'OK').length
-    const ngCount = inspection.results.filter(r => (r.humanOverride || r.judgment) === 'NG').length
-    const reviewCount = inspection.results.filter(r => (r.humanOverride || r.judgment) === '要確認').length
+    const normalResults = inspection.results.filter(r => r.category !== '薬機法')
+    const yakujiResults = inspection.results.filter(r => r.category === '薬機法')
+
+    const okCount = normalResults.filter(r => (r.humanOverride || r.judgment) === 'OK').length
+    const ngCount = normalResults.filter(r => (r.humanOverride || r.judgment) === 'NG').length
+    const reviewCount = normalResults.filter(r => (r.humanOverride || r.judgment) === '要確認').length
+
+    const yakujiPassed = yakujiResults.length === 0 ||
+      (yakujiResults.length === 1 && yakujiResults[0].ruleId === 'yakuji_overall' && yakujiResults[0].judgment === 'OK')
+    const yakujiNgCount = yakujiResults.filter(r => r.judgment === 'NG').length
 
     return (
       <div>
@@ -418,7 +425,7 @@ export default function InspectionsPage() {
           {reviewCount > 0 && <span style={{ fontSize: 13, background: '#fff3cd', color: '#856404', padding: '4px 12px', borderRadius: 20, fontWeight: 700 }}>要確認 {reviewCount}</span>}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {inspection.results.map(result => {
+          {normalResults.map(result => {
             const effective = result.humanOverride || result.judgment
             return (
               <div key={result.ruleId} style={{ background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 8, padding: '14px 16px' }}>
@@ -447,6 +454,53 @@ export default function InspectionsPage() {
             )
           })}
         </div>
+
+        {yakujiResults.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#272343' }}>薬機法チェック</div>
+              {yakujiPassed
+                ? <span style={{ fontSize: 12, background: '#d4edda', color: '#155724', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>違反なし</span>
+                : <span style={{ fontSize: 12, background: '#f8d7da', color: '#721c24', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>NG {yakujiNgCount}件</span>
+              }
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {yakujiPassed ? (
+                <div style={{ background: '#f0faf5', border: '1px solid #c3e6cb', borderRadius: 8, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 14, color: '#155724', fontWeight: 600, lineHeight: 1.5 }}>
+                    薬機法（医薬品医療機器等法）コンプライアンス
+                  </div>
+                  <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.75, marginTop: 4 }}>
+                    {yakujiResults[0]?.reason ?? '薬機法違反の疑いのある表現は検出されませんでした。'}
+                  </div>
+                </div>
+              ) : (
+                yakujiResults.map(result => (
+                  <div key={result.ruleId} style={{ background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 8, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, color: '#272343', fontWeight: 600, marginBottom: 4, lineHeight: 1.5 }}>{result.ruleContent}</div>
+                        <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.75 }}>{result.reason}</div>
+                        <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 4 }}>AI確信度: {Math.round((result.confidence || 0) * 100)}%</div>
+                      </div>
+                      <div style={{ marginLeft: 16 }}>
+                        <JudgmentBadge judgment={result.judgment} />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            {inspection.yakujiReference && (
+              <div style={{ marginTop: 10, fontSize: 11, color: '#BAE8E8', lineHeight: 1.6 }}>
+                参照資料: {inspection.yakujiReference.sourceName}
+                {inspection.yakujiReference.sourceUpdatedAt && (
+                  <>　資料更新日: {new Date(inspection.yakujiReference.sourceUpdatedAt).toLocaleDateString('ja-JP')}</>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     )
   }
