@@ -105,6 +105,7 @@ export default function YakujiPage() {
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>薬機法</h1>
         <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
+          薬機法が改正されたら、このページから最新情報を登録してください。<br />
           薬機法チェックのON/OFFは
           <Link href="/settings" style={{ color: '#272343', fontWeight: 600 }}>設定画面</Link>
           から変更できます。

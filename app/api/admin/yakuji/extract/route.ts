@@ -24,13 +24,25 @@ async function extractTextFromPdfBuffer(buf: Buffer): Promise<string> {
   return (data.text as string).slice(0, 20000)
 }
 
+function extractJson(text: string): string | null {
+  // コードブロック内のJSONを優先して抽出
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (codeBlock) return codeBlock[1].trim()
+  // 裸のJSONオブジェクトを抽出（最外側の { } を対象）
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start !== -1 && end > start) return text.slice(start, end + 1)
+  return null
+}
+
 const EXTRACT_PROMPT = (text: string) => `あなたは日本の薬機法（医薬品医療機器等法）の広告規制の専門家です。
 以下の資料テキストを解析し、動画広告の審査に使える薬機法判定ルールを抽出・整理してください。
+資料が法令全文の場合は広告規制・誇大広告・虚偽広告に関する条文を重点的に参照してください。
 
 【資料テキスト】
 ${text}
 
-以下のJSON形式で回答してください。source_nameとsource_updated_atは資料から読み取れる範囲で推定してください：
+必ず以下のJSON形式のみで回答してください（説明文は不要）：
 {
   "source_name": "資料名（例: 医薬品等適正広告基準（令和○年改正））",
   "source_updated_at": "更新日（YYYY-MM-DD形式、不明な場合はnull）",
@@ -84,10 +96,11 @@ export async function POST(request: NextRequest) {
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) return Response.json({ error: 'Claude から有効なJSONを取得できませんでした' }, { status: 500 })
+    console.log('[yakuji/extract] Claude response (first 500):', text.slice(0, 500))
+    const jsonStr = extractJson(text)
+    if (!jsonStr) return Response.json({ error: 'AIが有効なJSON形式で回答しませんでした。別のURLやPDFをお試しください。' }, { status: 500 })
 
-    const parsed = JSON.parse(jsonMatch[0]) as {
+    const parsed = JSON.parse(jsonStr) as {
       source_name: string
       source_updated_at: string | null
       rules: YakujiRule[]

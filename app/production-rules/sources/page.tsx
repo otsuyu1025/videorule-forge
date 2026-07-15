@@ -52,6 +52,7 @@ export default function SourcesPage() {
   const [items, setItems] = useState<SourceItem[]>([])
   const [filter, setFilter] = useState<FilterType>('all')
   const [loading, setLoading] = useState(true)
+  const [yakujiEnabled, setYakujiEnabled] = useState(false)
 
   const [guidCandCounts, setGuidCandCounts] = useState<Record<string, number>>({})
 
@@ -66,11 +67,13 @@ export default function SourcesPage() {
     })
 
   const fetchAll = async () => {
-    const [videos, guidelines, candidates] = await Promise.all([
+    const [videos, guidelines, candidates, yakuji] = await Promise.all([
       fetch('/api/videos?type=sample').then(r => r.json()),
       fetch('/api/guidelines').then(r => r.json()),
       fetch('/api/rule-candidates').then(r => r.json()),
+      fetch('/api/admin/yakuji').then(r => r.json()),
     ])
+    setYakujiEnabled(yakuji.enabled ?? false)
     const counts: Record<string, number> = {}
     for (const c of candidates) {
       if (c.guidelineId) counts[c.guidelineId] = (counts[c.guidelineId] || 0) + 1
@@ -134,15 +137,17 @@ export default function SourcesPage() {
             {f === 'all' ? 'すべて' : 'ガイドライン'}
           </button>
         ))}
-        <Link href="/production-rules/yakuji" style={{
-          padding: '6px 16px', borderRadius: 20,
-          border: '1px solid #BAE8E8',
-          background: '#fff', color: '#2D334A',
-          fontWeight: 400, fontSize: 13, textDecoration: 'none',
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-        }}>
-          薬機法
-        </Link>
+        {yakujiEnabled && (
+          <Link href="/production-rules/yakuji" style={{
+            padding: '6px 16px', borderRadius: 20,
+            border: '1px solid #BAE8E8',
+            background: '#fff', color: '#2D334A',
+            fontWeight: 400, fontSize: 13, textDecoration: 'none',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}>
+            薬機法
+          </Link>
+        )}
         <button onClick={() => setFilter('sampleVideo')} style={{
           padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
           border: filter === 'sampleVideo' ? '2px solid #272343' : '1px solid #BAE8E8',
