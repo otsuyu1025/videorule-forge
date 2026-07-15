@@ -165,19 +165,19 @@ export default function YakujiPage() {
         <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
           薬機法が改正されたら、このページから最新情報を登録してください。
         </p>
-        <div style={{ marginTop: 10, fontSize: 13, lineHeight: 2 }}>
-          <div>
-            <span style={{ display: 'inline-block', background: '#d4edda', color: '#155724', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 8, verticalAlign: 'middle' }}>必須</span>
+        <div style={{ marginTop: 10, fontSize: 13, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span>
+            <span style={{ display: 'inline-block', background: '#d4edda', color: '#155724', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 6, verticalAlign: 'middle' }}>必須</span>
             <span style={{ color: '#2D334A' }}>第十章　医薬品等の広告</span>
-          </div>
-          <div>
-            <span style={{ display: 'inline-block', background: '#fff3cd', color: '#856404', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 8, verticalAlign: 'middle' }}>任意</span>
+          </span>
+          <span>
+            <span style={{ display: 'inline-block', background: '#fff3cd', color: '#856404', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 6, verticalAlign: 'middle' }}>任意</span>
             <span style={{ color: '#2D334A', opacity: 0.8 }}>第十一〜十八章</span>
-          </div>
-          <div>
-            <span style={{ display: 'inline-block', background: '#e2e3e5', color: '#6c757d', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 8, verticalAlign: 'middle' }}>不要</span>
+          </span>
+          <span>
+            <span style={{ display: 'inline-block', background: '#e2e3e5', color: '#6c757d', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 6, verticalAlign: 'middle' }}>不要</span>
             <span style={{ color: '#2D334A', opacity: 0.5 }}>第一〜九章</span>
-          </div>
+          </span>
         </div>
       </div>
 
