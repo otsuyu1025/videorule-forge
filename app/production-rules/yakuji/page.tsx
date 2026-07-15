@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { YakujiRule, YakujiSettings } from '@/types'
 
-type InputMode = 'text' | 'pdf' | 'txt'
+type InputMode = 'text' | 'txt' | 'pdf' | 'json'
 
 interface ExtractPreview {
   source_name: string
@@ -12,10 +12,20 @@ interface ExtractPreview {
   rules: YakujiRule[]
 }
 
+const TAB_LABELS: Record<InputMode, string> = {
+  text: 'テキスト入力',
+  txt: 'テキストファイル',
+  pdf: 'PDF',
+  json: 'JSONファイル',
+}
+
 export default function YakujiPage() {
   const [settings, setSettings] = useState<YakujiSettings | null>(null)
   const [inputMode, setInputMode] = useState<InputMode>('text')
   const [textInput, setTextInput] = useState('')
+  const [loadedText, setLoadedText] = useState('')   // txt/pdf → 編集可能テキスト
+  const [loadedFileName, setLoadedFileName] = useState('')
+  const [loadingText, setLoadingText] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [preview, setPreview] = useState<ExtractPreview | null>(null)
   const [saving, setSaving] = useState(false)
@@ -23,6 +33,7 @@ export default function YakujiPage() {
   const [successMsg, setSuccessMsg] = useState('')
   const pdfRef = useRef<HTMLInputElement>(null)
   const txtRef = useRef<HTMLInputElement>(null)
+  const jsonRef = useRef<HTMLInputElement>(null)
 
   const fetchSettings = async () => {
     const res = await fetch('/api/admin/yakuji')
@@ -31,36 +42,86 @@ export default function YakujiPage() {
 
   useEffect(() => { fetchSettings() }, [])
 
+  const switchMode = (mode: InputMode) => {
+    setInputMode(mode)
+    setError('')
+    setLoadedText('')
+    setLoadedFileName('')
+    setPreview(null)
+  }
+
+  // テキストファイル: クライアント側で読み込む（API不使用）
+  const handleTxtLoad = async () => {
+    const file = txtRef.current?.files?.[0]
+    if (!file) { setError('ファイルを選択してください'); return }
+    setError('')
+    const text = await file.text()
+    setLoadedText(text.slice(0, 20000))
+    setLoadedFileName(file.name)
+  }
+
+  // PDF: サーバーでテキスト抽出のみ（Claude不使用）
+  const handlePdfExtractText = async () => {
+    const file = pdfRef.current?.files?.[0]
+    if (!file) { setError('PDFファイルを選択してください'); return }
+    setError('')
+    setLoadingText(true)
+    try {
+      const form = new FormData()
+      form.append('pdf', file)
+      const res = await fetch('/api/admin/yakuji/extract?textOnly=true', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'テキスト抽出エラー'); return }
+      setLoadedText(data.text)
+      setLoadedFileName(file.name)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'エラーが発生しました')
+    } finally {
+      setLoadingText(false)
+    }
+  }
+
+  // JSON: クライアント側でパース・直接インポート（Claude不使用）
+  const handleJsonLoad = () => {
+    const file = jsonRef.current?.files?.[0]
+    if (!file) { setError('JSONファイルを選択してください'); return }
+    setError('')
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string)
+        if (!Array.isArray(data.rules) || data.rules.length === 0) {
+          setError('有効な rules 配列が見つかりません')
+          return
+        }
+        setPreview({
+          source_name: data.source_name ?? file.name.replace(/\.json$/, ''),
+          source_updated_at: data.source_updated_at ?? null,
+          rules: data.rules as YakujiRule[],
+        })
+      } catch {
+        setError('JSONの解析に失敗しました。正しい形式か確認してください。')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  // Claude でルール抽出（text/txt/pdf の第2ステップ）
   const handleExtract = async () => {
     setError('')
     setPreview(null)
     setExtracting(true)
     try {
-      let res: Response
-
-      if (inputMode === 'pdf') {
-        const file = pdfRef.current?.files?.[0]
-        if (!file) { setError('PDFファイルを選択してください'); return }
-        const form = new FormData()
-        form.append('pdf', file)
-        res = await fetch('/api/admin/yakuji/extract', { method: 'POST', body: form })
-
-      } else if (inputMode === 'txt') {
-        const file = txtRef.current?.files?.[0]
-        if (!file) { setError('テキストファイルを選択してください'); return }
-        const form = new FormData()
-        form.append('file', file)
-        res = await fetch('/api/admin/yakuji/extract', { method: 'POST', body: form })
-
-      } else {
-        if (!textInput.trim()) { setError('テキストを入力してください'); return }
-        res = await fetch('/api/admin/yakuji/extract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: textInput }),
-        })
+      const text = inputMode === 'text' ? textInput : loadedText
+      if (!text.trim()) {
+        setError(inputMode === 'text' ? 'テキストを入力してください' : 'テキストを読み込んでください')
+        return
       }
-
+      const res = await fetch('/api/admin/yakuji/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
       const data = await res.json()
       if (!res.ok) { setError(data.error || '取得エラー'); return }
       setPreview(data as ExtractPreview)
@@ -91,8 +152,11 @@ export default function YakujiPage() {
       setSettings(updated)
       setPreview(null)
       setTextInput('')
+      setLoadedText('')
+      setLoadedFileName('')
       if (pdfRef.current) pdfRef.current.value = ''
       if (txtRef.current) txtRef.current.value = ''
+      if (jsonRef.current) jsonRef.current.value = ''
       setSuccessMsg('薬機法ルールを更新しました')
       setTimeout(() => setSuccessMsg(''), 4000)
     } catch (e) {
@@ -102,11 +166,7 @@ export default function YakujiPage() {
     }
   }
 
-  const TAB_LABELS: Record<InputMode, string> = {
-    text: 'テキスト入力',
-    txt: 'テキストファイル',
-    pdf: 'PDF',
-  }
+  const canExtract = inputMode === 'text' ? textInput.trim().length > 0 : loadedText.trim().length > 0
 
   return (
     <div style={{ padding: 48, maxWidth: 800, margin: '0 auto' }}>
@@ -156,33 +216,37 @@ export default function YakujiPage() {
         </div>
       )}
 
-      {/* ルール更新 */}
+      {/* ルール更新セクション */}
       <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 14, padding: '24px 28px', marginBottom: 24 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 6 }}>ルールを更新する</div>
         <div style={{ fontSize: 13, color: '#2D334A', opacity: 0.7, marginBottom: 20, lineHeight: 1.7 }}>
-          法令改正時は、厚生労働省の「医薬品等適正広告基準」の内容をいずれかの方法で入力してください。<br />
-          AIが内容を解析し、新しい判定ルールを自動抽出します。
+          法令改正時は最新の内容をいずれかの方法で入力してください。<br />
+          テキスト・PDFは読み込み後に編集してから送信できます。JSONはAIを使わず直接インポートします。
         </div>
 
-        {/* 入力モード切替タブ */}
+        {/* タブ */}
         <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #E3F6F5' }}>
-          {(['text', 'txt', 'pdf'] as InputMode[]).map(mode => (
+          {(['text', 'txt', 'pdf', 'json'] as InputMode[]).map(mode => (
             <button
               key={mode}
-              onClick={() => { setInputMode(mode); setError('') }}
+              onClick={() => switchMode(mode)}
               style={{
-                padding: '8px 16px', border: 'none', background: 'transparent',
+                padding: '8px 14px', border: 'none', background: 'transparent',
                 fontSize: 13, fontWeight: inputMode === mode ? 700 : 400,
                 color: inputMode === mode ? '#272343' : '#999',
                 borderBottom: inputMode === mode ? '2px solid #272343' : 'none',
-                cursor: 'pointer', marginBottom: -2,
+                cursor: 'pointer', marginBottom: -2, display: 'flex', alignItems: 'center', gap: 4,
               }}
             >
               {TAB_LABELS[mode]}
+              {mode === 'json' && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#27ae60' }}>AI不使用</span>
+              )}
             </button>
           ))}
         </div>
 
+        {/* テキスト入力 */}
         {inputMode === 'text' && (
           <div style={{ marginBottom: 20 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
@@ -205,33 +269,131 @@ export default function YakujiPage() {
           </div>
         )}
 
-        {inputMode === 'txt' && (
+        {/* テキストファイル */}
+        {inputMode === 'txt' && !loadedText && (
           <div style={{ marginBottom: 20 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
               テキストファイル（.txt）を選択
             </label>
-            <input
-              ref={txtRef}
-              type="file"
-              accept=".txt,text/plain"
-              style={{ fontSize: 14, color: '#272343' }}
-            />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input ref={txtRef} type="file" accept=".txt,text/plain" style={{ fontSize: 14, color: '#272343' }} />
+              <button
+                onClick={handleTxtLoad}
+                style={{
+                  background: '#272343', color: '#FFD803', border: 'none',
+                  borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                テキストを読み込む
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 6 }}>クライアント側で読み込みます（API不使用）</div>
           </div>
         )}
 
-        {inputMode === 'pdf' && (
+        {/* テキストファイル読み込み後: 編集可能テキスト */}
+        {inputMode === 'txt' && loadedText && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#272343' }}>
+                読み込んだテキスト（不要な箇所を削除してから抽出できます）
+              </label>
+              <span style={{ fontSize: 11, color: '#BAE8E8' }}>📎 {loadedFileName}</span>
+            </div>
+            <textarea
+              value={loadedText}
+              onChange={e => setLoadedText(e.target.value)}
+              rows={10}
+              style={{
+                width: '100%', padding: '10px 14px', border: '1px solid #BAE8E8',
+                borderRadius: 8, fontSize: 13, color: '#272343', outline: 'none',
+                resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 4 }}>
+              {loadedText.length.toLocaleString()} 文字
+            </div>
+          </div>
+        )}
+
+        {/* PDF */}
+        {inputMode === 'pdf' && !loadedText && (
           <div style={{ marginBottom: 20 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
               PDFファイルを選択
             </label>
-            <input
-              ref={pdfRef}
-              type="file"
-              accept=".pdf"
-              style={{ fontSize: 14, color: '#272343' }}
-            />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input ref={pdfRef} type="file" accept=".pdf" style={{ fontSize: 14, color: '#272343' }} />
+              <button
+                onClick={handlePdfExtractText}
+                disabled={loadingText}
+                style={{
+                  background: loadingText ? '#BAE8E8' : '#272343',
+                  color: loadingText ? '#fff' : '#FFD803',
+                  border: 'none', borderRadius: 8, padding: '8px 16px',
+                  fontWeight: 700, fontSize: 13,
+                  cursor: loadingText ? 'default' : 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                {loadingText ? 'テキスト抽出中...' : 'テキストを抽出'}
+              </button>
+            </div>
             <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 6, lineHeight: 1.6 }}>
-              推奨: 厚生労働省「医薬品等適正広告基準」のPDF
+              pdf-parse でテキストを取り出します（この時点ではClaudeは不使用）
+            </div>
+          </div>
+        )}
+
+        {/* PDF読み込み後: 編集可能テキスト */}
+        {inputMode === 'pdf' && loadedText && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#272343' }}>
+                PDFから抽出したテキスト（不要な箇所を削除してから送信できます）
+              </label>
+              <span style={{ fontSize: 11, color: '#BAE8E8' }}>📎 {loadedFileName}</span>
+            </div>
+            <textarea
+              value={loadedText}
+              onChange={e => setLoadedText(e.target.value)}
+              rows={10}
+              style={{
+                width: '100%', padding: '10px 14px', border: '1px solid #BAE8E8',
+                borderRadius: 8, fontSize: 13, color: '#272343', outline: 'none',
+                resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 4 }}>
+              {loadedText.length.toLocaleString()} 文字（上限 20,000 文字）
+            </div>
+          </div>
+        )}
+
+        {/* JSON */}
+        {inputMode === 'json' && !preview && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ background: '#F0FFF4', border: '1px solid #c3e6cb', borderRadius: 8, padding: '12px 16px', marginBottom: 14, fontSize: 13, color: '#2D334A', lineHeight: 1.7 }}>
+              <strong>AI不使用</strong> — 過去にエクスポートしたJSONや手動作成したルール定義ファイルを直接インポートします。<br />
+              形式: <code style={{ background: '#E3F6F5', padding: '1px 6px', borderRadius: 3, fontSize: 12 }}>
+                {'{ "source_name": "...", "rules": [{ "id", "label", "description", "examples_ng" }] }'}
+              </code>
+            </div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
+              JSONファイル（.json）を選択
+            </label>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input ref={jsonRef} type="file" accept=".json,application/json" style={{ fontSize: 14, color: '#272343' }} />
+              <button
+                onClick={handleJsonLoad}
+                style={{
+                  background: '#272343', color: '#FFD803', border: 'none',
+                  borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                JSONを読み込む
+              </button>
             </div>
           </div>
         )}
@@ -242,24 +404,47 @@ export default function YakujiPage() {
           </div>
         )}
 
-        <button
-          onClick={handleExtract}
-          disabled={extracting}
-          style={{
-            background: extracting ? '#BAE8E8' : '#272343', color: extracting ? '#fff' : '#FFD803',
-            border: 'none', borderRadius: 8, padding: '10px 20px',
-            fontWeight: 700, fontSize: 14, cursor: extracting ? 'default' : 'pointer',
-          }}
-        >
-          {extracting ? '解析中...' : 'AIでルールを抽出'}
-        </button>
+        {/* AI抽出ボタン（text/txt/pdf のみ） */}
+        {inputMode !== 'json' && (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button
+              onClick={handleExtract}
+              disabled={extracting || !canExtract}
+              style={{
+                background: extracting || !canExtract ? '#BAE8E8' : '#272343',
+                color: extracting || !canExtract ? '#fff' : '#FFD803',
+                border: 'none', borderRadius: 8, padding: '10px 20px',
+                fontWeight: 700, fontSize: 14,
+                cursor: extracting || !canExtract ? 'default' : 'pointer',
+              }}
+            >
+              {extracting ? '解析中...' : 'AIでルールを抽出'}
+            </button>
+            {(inputMode === 'txt' || inputMode === 'pdf') && loadedText && (
+              <button
+                onClick={() => { setLoadedText(''); setLoadedFileName('') }}
+                style={{
+                  background: 'none', border: '1px solid #BAE8E8', borderRadius: 8,
+                  padding: '10px 16px', fontSize: 13, color: '#2D334A', cursor: 'pointer',
+                }}
+              >
+                ← ファイルを選び直す
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* プレビュー */}
       {preview && (
         <div style={{ background: '#fff', border: '2px solid #272343', borderRadius: 14, padding: '24px 28px', marginBottom: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#272343', marginBottom: 16 }}>
-            抽出結果プレビュー
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#272343' }}>抽出結果プレビュー</div>
+            {inputMode === 'json' && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#27ae60', background: '#d4edda', padding: '2px 8px', borderRadius: 20 }}>
+                AI不使用
+              </span>
+            )}
           </div>
 
           <div style={{ background: '#F5FCFC', borderRadius: 8, padding: '14px 18px', marginBottom: 20 }}>
@@ -313,13 +498,11 @@ export default function YakujiPage() {
         </div>
       )}
 
-      {/* 現在のルール一覧 */}
+      {/* 現在のルール一覧 + トグル */}
       {settings && settings.rules && settings.rules.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 14, padding: '24px 28px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#272343' }}>
-              判定ルール
-            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#272343' }}>判定ルール</div>
             <div style={{ fontSize: 13, color: '#BAE8E8' }}>
               {settings.rules.filter(r => r.enabled !== false).length} / {settings.rules.length} カテゴリ有効
             </div>
@@ -360,23 +543,16 @@ export default function YakujiPage() {
                     }}
                     title={isEnabled ? 'OFFにする' : 'ONにする'}
                     style={{
-                      flexShrink: 0,
-                      width: 40, height: 22,
-                      borderRadius: 11,
-                      border: 'none',
-                      background: isEnabled ? '#272343' : '#CCC',
-                      cursor: 'pointer',
-                      position: 'relative',
-                      transition: 'background 0.2s',
+                      flexShrink: 0, width: 40, height: 22, borderRadius: 11,
+                      border: 'none', background: isEnabled ? '#272343' : '#CCC',
+                      cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
                     }}
                   >
                     <span style={{
-                      position: 'absolute',
-                      top: 3, left: isEnabled ? 21 : 3,
+                      position: 'absolute', top: 3, left: isEnabled ? 21 : 3,
                       width: 16, height: 16, borderRadius: '50%',
                       background: isEnabled ? '#FFD803' : '#fff',
-                      transition: 'left 0.2s',
-                      display: 'block',
+                      transition: 'left 0.2s', display: 'block',
                     }} />
                   </button>
                 </div>

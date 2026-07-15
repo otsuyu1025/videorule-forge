@@ -92,6 +92,9 @@ async function callClaude(rawText: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const textOnly = searchParams.get('textOnly') === 'true'
+
     const contentType = request.headers.get('content-type') || ''
     let rawText = ''
 
@@ -118,6 +121,11 @@ export async function POST(request: NextRequest) {
 
     if (!rawText.trim()) {
       return Response.json({ error: 'テキストを抽出できませんでした' }, { status: 422 })
+    }
+
+    // textOnly=true の場合は Claude を呼ばずにテキストだけ返す
+    if (textOnly) {
+      return Response.json({ text: rawText })
     }
 
     const result = await callClaude(rawText)
