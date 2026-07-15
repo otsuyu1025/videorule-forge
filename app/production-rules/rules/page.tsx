@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { ProductionRule } from '@/types'
+import type { ProductionRule, YakujiSettings } from '@/types'
 
 function SourceFooter({ rule }: { rule: ProductionRule }) {
   const src = rule.source
@@ -43,6 +43,7 @@ function SourceFooter({ rule }: { rule: ProductionRule }) {
 export default function RulesPage() {
   const [rules, setRules] = useState<ProductionRule[]>([])
   const [loading, setLoading] = useState(true)
+  const [yakuji, setYakuji] = useState<YakujiSettings | null>(null)
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ content: '', category: '', reason: '' })
@@ -56,7 +57,10 @@ export default function RulesPage() {
       .then(d => { setRules(d); setLoading(false) })
   }
 
-  useEffect(() => { fetchRules() }, [])
+  useEffect(() => {
+    fetchRules()
+    fetch('/api/admin/yakuji').then(r => r.json()).then(d => setYakuji(d as YakujiSettings))
+  }, [])
 
   const handleEdit = (rule: ProductionRule) => {
     setEditingId(rule.id)
@@ -261,6 +265,50 @@ export default function RulesPage() {
           onBlur={e => { e.target.style.borderColor = '#E3F6F5' }}
         />
       </div>
+
+      {/* 薬機法セクション */}
+      {yakuji && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={{ background: '#272343', color: '#FFD803', fontSize: 12, fontWeight: 700, padding: '3px 12px', borderRadius: 20 }}>
+              ⚖️ 薬機法
+            </span>
+            <span style={{ fontSize: 12, color: '#BAE8E8' }}>
+              {(yakuji.rules?.length ?? 0) > 0
+                ? `${yakuji.rules.filter(r => r.enabled !== false).length} / ${yakuji.rules.length} カテゴリ有効`
+                : '未登録'}
+            </span>
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {(yakuji.rules?.length ?? 0) > 0 ? (
+                <div>
+                  <div style={{ fontSize: 14, color: '#272343', fontWeight: 600, marginBottom: 4 }}>
+                    {yakuji.source_name ?? '薬機法ルール'}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.6, lineHeight: 1.5 }}>
+                    各ルールの編集・削除・ON/OFFは薬機法ページで管理できます。
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 14, color: '#2D334A', opacity: 0.6 }}>
+                  薬機法ルールがまだ登録されていません。
+                </div>
+              )}
+              <Link
+                href="/production-rules/yakuji"
+                style={{
+                  background: '#E3F6F5', color: '#272343', border: 'none',
+                  borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700,
+                  textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 16,
+                }}
+              >
+                薬機法ページで編集 →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ color: '#2D334A', opacity: 0.6 }}>読み込み中...</div>

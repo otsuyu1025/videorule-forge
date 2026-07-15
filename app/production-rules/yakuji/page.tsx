@@ -31,6 +31,8 @@ export default function YakujiPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
+  const [editRuleForm, setEditRuleForm] = useState({ label: '', description: '', examples_ng: '', examples_ok: '' })
   const txtRef = useRef<HTMLInputElement>(null)
   const jsonRef = useRef<HTMLInputElement>(null)
 
@@ -145,6 +147,60 @@ export default function YakujiPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleEditRule = (rule: YakujiRule) => {
+    setEditingRuleId(rule.id)
+    setEditRuleForm({
+      label: rule.label,
+      description: rule.description,
+      examples_ng: rule.examples_ng.join('\n'),
+      examples_ok: (rule.examples_ok ?? []).join('\n'),
+    })
+  }
+
+  const handleSaveRule = async () => {
+    if (!editingRuleId) return
+    const ruleData = {
+      label: editRuleForm.label.trim(),
+      description: editRuleForm.description.trim(),
+      examples_ng: editRuleForm.examples_ng.split('\n').map(s => s.trim()).filter(Boolean),
+      examples_ok: editRuleForm.examples_ok.split('\n').map(s => s.trim()).filter(Boolean),
+    }
+    const res = await fetch('/api/admin/yakuji', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ruleId: editingRuleId, ruleData }),
+    })
+    setSettings(await res.json() as YakujiSettings)
+    setEditingRuleId(null)
+  }
+
+  const handleDeleteRule = async (ruleId: string) => {
+    if (!confirm('このルールを削除しますか？')) return
+    const res = await fetch('/api/admin/yakuji', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ruleId }),
+    })
+    setSettings(await res.json() as YakujiSettings)
+  }
+
+  const handleExportJson = () => {
+    if (!settings) return
+    const data = {
+      source_name: settings.source_name,
+      source_updated_at: settings.source_updated_at,
+      imported_at: settings.imported_at,
+      rules: settings.rules,
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `yakuji-rules-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const canExtract = inputMode === 'text' ? textInput.trim().length > 0 : loadedText.trim().length > 0
@@ -497,14 +553,25 @@ export default function YakujiPage() {
         </div>
       )}
 
-      {/* 現在のルール一覧 + トグル */}
+      {/* 現在のルール一覧 + トグル + 編集 */}
       {settings && settings.rules && settings.rules.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 14, padding: '24px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#272343' }}>判定ルール</div>
-            <div style={{ fontSize: 13, color: '#BAE8E8' }}>
-              {settings.rules.filter(r => r.enabled !== false).length} / {settings.rules.length} カテゴリ有効
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#272343' }}>判定ルール</div>
+              <div style={{ fontSize: 13, color: '#BAE8E8' }}>
+                {settings.rules.filter(r => r.enabled !== false).length} / {settings.rules.length} カテゴリ有効
+              </div>
             </div>
+            <button
+              onClick={handleExportJson}
+              style={{
+                background: '#E3F6F5', color: '#272343', border: 'none',
+                borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              JSONエクスポート
+            </button>
           </div>
           <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.6, marginBottom: 16, lineHeight: 1.6 }}>
             業界・用途に応じて不要なカテゴリをOFFにすると、そのカテゴリはClaudeに送信されず費用を節約できます。
@@ -512,6 +579,65 @@ export default function YakujiPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {settings.rules.map(rule => {
               const isEnabled = rule.enabled !== false
+              if (editingRuleId === rule.id) {
+                return (
+                  <div key={rule.id} style={{ border: '2px solid #272343', borderRadius: 8, padding: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#272343', display: 'block', marginBottom: 4 }}>カテゴリ名</label>
+                        <input
+                          value={editRuleForm.label}
+                          onChange={e => setEditRuleForm({ ...editRuleForm, label: e.target.value })}
+                          style={{ width: '100%', padding: '8px 10px', border: '1px solid #BAE8E8', borderRadius: 6, fontSize: 14, color: '#272343', boxSizing: 'border-box', outline: 'none' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#272343', display: 'block', marginBottom: 4 }}>判定基準の説明</label>
+                        <textarea
+                          value={editRuleForm.description}
+                          onChange={e => setEditRuleForm({ ...editRuleForm, description: e.target.value })}
+                          rows={3}
+                          style={{ width: '100%', padding: '8px 10px', border: '1px solid #BAE8E8', borderRadius: 6, fontSize: 13, color: '#272343', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6 }}
+                        />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div>
+                          <label style={{ fontSize: 12, fontWeight: 700, color: '#e74c3c', display: 'block', marginBottom: 4 }}>NG例（1行1件）</label>
+                          <textarea
+                            value={editRuleForm.examples_ng}
+                            onChange={e => setEditRuleForm({ ...editRuleForm, examples_ng: e.target.value })}
+                            rows={4}
+                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #ffd0d0', borderRadius: 6, fontSize: 12, color: '#272343', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6 }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, fontWeight: 700, color: '#27ae60', display: 'block', marginBottom: 4 }}>OK例（1行1件・任意）</label>
+                          <textarea
+                            value={editRuleForm.examples_ok}
+                            onChange={e => setEditRuleForm({ ...editRuleForm, examples_ok: e.target.value })}
+                            rows={4}
+                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #c3e6cb', borderRadius: 6, fontSize: 12, color: '#272343', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6 }}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={handleSaveRule}
+                          style={{ background: '#272343', color: '#FFD803', border: 'none', borderRadius: 6, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => setEditingRuleId(null)}
+                          style={{ background: 'transparent', color: '#999', border: '1px solid #ddd', borderRadius: 6, padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
               return (
                 <div
                   key={rule.id}
@@ -526,34 +652,53 @@ export default function YakujiPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>{rule.label}</div>
                     <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.7, lineHeight: 1.5 }}>{rule.description}</div>
+                    {rule.examples_ng.length > 0 && (
+                      <div style={{ fontSize: 11, color: '#e74c3c', marginTop: 6 }}>
+                        NG例: {rule.examples_ng.slice(0, 3).join('、')}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={async () => {
-                      const next = !isEnabled
-                      setSettings(prev => prev ? {
-                        ...prev,
-                        rules: prev.rules.map(r => r.id === rule.id ? { ...r, enabled: next } : r),
-                      } : prev)
-                      await fetch('/api/admin/yakuji', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ruleId: rule.id, ruleEnabled: next }),
-                      })
-                    }}
-                    title={isEnabled ? 'OFFにする' : 'ONにする'}
-                    style={{
-                      flexShrink: 0, width: 40, height: 22, borderRadius: 11,
-                      border: 'none', background: isEnabled ? '#272343' : '#CCC',
-                      cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
-                    }}
-                  >
-                    <span style={{
-                      position: 'absolute', top: 3, left: isEnabled ? 21 : 3,
-                      width: 16, height: 16, borderRadius: '50%',
-                      background: isEnabled ? '#FFD803' : '#fff',
-                      transition: 'left 0.2s', display: 'block',
-                    }} />
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <button
+                      onClick={() => handleEditRule(rule)}
+                      style={{ background: '#E3F6F5', color: '#272343', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      編集
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRule(rule.id)}
+                      style={{ background: 'transparent', color: '#ff6b6b', border: '1px solid #ffd0d0', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      削除
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const next = !isEnabled
+                        setSettings(prev => prev ? {
+                          ...prev,
+                          rules: prev.rules.map(r => r.id === rule.id ? { ...r, enabled: next } : r),
+                        } : prev)
+                        await fetch('/api/admin/yakuji', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ ruleId: rule.id, ruleEnabled: next }),
+                        })
+                      }}
+                      title={isEnabled ? 'OFFにする' : 'ONにする'}
+                      style={{
+                        flexShrink: 0, width: 40, height: 22, borderRadius: 11,
+                        border: 'none', background: isEnabled ? '#272343' : '#CCC',
+                        cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute', top: 3, left: isEnabled ? 21 : 3,
+                        width: 16, height: 16, borderRadius: '50%',
+                        background: isEnabled ? '#FFD803' : '#fff',
+                        transition: 'left 0.2s', display: 'block',
+                      }} />
+                    </button>
+                  </div>
                 </div>
               )
             })}

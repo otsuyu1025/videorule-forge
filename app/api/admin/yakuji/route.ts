@@ -54,6 +54,17 @@ export async function PUT(request: NextRequest) {
     })
   }
 
+  // 個別ルールの編集（{ ruleId: string, ruleData: Partial<YakujiRule> }）
+  if ('ruleId' in body && 'ruleData' in body) {
+    const current = readYakujiRules()
+    writeYakujiRules({
+      ...current,
+      rules: current.rules.map(r =>
+        r.id === body.ruleId ? { ...r, ...body.ruleData } : r
+      ),
+    })
+  }
+
   // ルール・資料情報は yakuji.json に保存
   const ruleKeys = ['source_name', 'source_updated_at', 'source_url', 'imported_at', 'rules']
   if (ruleKeys.some(k => k in body)) {
@@ -65,6 +76,19 @@ export async function PUT(request: NextRequest) {
     writeYakujiRules(updated)
   }
 
+  const enabled = !!(db.data.settings as Record<string, unknown>)?.yakujiEnabled
+  return Response.json({ enabled, ...readYakujiRules() })
+}
+
+export async function DELETE(request: NextRequest) {
+  const { ruleId } = await request.json()
+  if (!ruleId) return Response.json({ error: 'ruleId が必要です' }, { status: 400 })
+  const current = readYakujiRules()
+  writeYakujiRules({
+    ...current,
+    rules: current.rules.filter(r => r.id !== ruleId),
+  })
+  const db = await getDb()
   const enabled = !!(db.data.settings as Record<string, unknown>)?.yakujiEnabled
   return Response.json({ enabled, ...readYakujiRules() })
 }
