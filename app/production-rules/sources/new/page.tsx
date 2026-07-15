@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-type SourceKind = 'sampleVideo' | 'guideline' | null
+type SourceKind = 'sampleVideo' | 'guideline' | 'yakuji' | null
 type SampleMode = 'sns' | 'file'
 
 const SNS_EXAMPLES = [
@@ -126,7 +126,7 @@ export default function SourcesNewPage() {
   }
 
   return (
-    <div style={{ padding: 48, maxWidth: 680, margin: '0 auto' }}>
+    <div style={{ padding: 48, maxWidth: kind ? 680 : 900, margin: '0 auto' }}>
       <div style={{ marginBottom: 4 }}>
         <Link href="/production-rules/sources" style={{ color: '#2D334A', fontSize: 13, textDecoration: 'none', opacity: 0.6 }}>
           ← 知識ソース一覧
@@ -146,37 +146,51 @@ export default function SourcesNewPage() {
 
       {/* 種別選択 */}
       {!kind && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          {[
-            {
-              key: 'guideline' as SourceKind,
-              icon: '📁',
-              title: 'ガイドラインをアップロード',
-              desc: 'デザインガイドラインやコンプライアンスルールなど、自社の制作基準となる文書をアップロードしてください。AIがルール候補の生成に活用します。',
-            },
-            {
-              key: 'sampleVideo' as SourceKind,
-              icon: '🎬',
-              title: 'お手本動画を登録',
-              desc: 'AIが動画を解析してルール候補を生成します。',
-            },
-          ].map(opt => (
-            <button
-              key={opt.key!}
-              onClick={() => setKind(opt.key)}
-              style={{
-                background: '#fff', border: '2px solid #E3F6F5', borderRadius: 14,
-                padding: '28px 24px', cursor: 'pointer', textAlign: 'left',
-                transition: 'border-color 0.15s',
-              }}
-              onMouseEnter={e => { (e.currentTarget).style.borderColor = '#272343' }}
-              onMouseLeave={e => { (e.currentTarget).style.borderColor = '#E3F6F5' }}
-            >
-              <div style={{ fontSize: 32, marginBottom: 14 }}>{opt.icon}</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 8 }}>{opt.title}</div>
-              <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>{opt.desc}</div>
-            </button>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <button
+            onClick={() => setKind('guideline')}
+            style={{
+              background: '#fff', border: '2px solid #E3F6F5', borderRadius: 14,
+              padding: '28px 24px', cursor: 'pointer', textAlign: 'left',
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#272343' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E3F6F5' }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 14 }}>📁</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 8 }}>ガイドラインをアップロード</div>
+            <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>デザインガイドラインやコンプライアンスルールなど、自社の制作基準となる文書をアップロードしてください。AIがルール候補の生成に活用します。</div>
+          </button>
+
+          <Link
+            href="/production-rules/yakuji"
+            style={{
+              background: '#fff', border: '2px solid #E3F6F5', borderRadius: 14,
+              padding: '28px 24px', textDecoration: 'none', display: 'block',
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.borderColor = '#272343' }}
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.borderColor = '#E3F6F5' }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 14 }}>⚖️</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 8 }}>薬機法をアップロード</div>
+            <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>薬機法の広告規制資料をテキスト・PDFで登録します。AIが判定ルールを自動抽出します。</div>
+          </Link>
+
+          <button
+            onClick={() => setKind('sampleVideo')}
+            style={{
+              background: '#fff', border: '2px solid #E3F6F5', borderRadius: 14,
+              padding: '28px 24px', cursor: 'pointer', textAlign: 'left',
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#272343' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E3F6F5' }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 14 }}>🎬</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 8 }}>お手本動画を登録</div>
+            <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>AIが動画を解析してルール候補を生成します。</div>
+          </button>
         </div>
       )}
 
