@@ -8,9 +8,12 @@ export async function GET() {
   const visionFrameInterval: number = settings.visionFrameInterval as number
     ?? parseInt(process.env.VISION_FRAME_INTERVAL || '3')
 
+  const transcriptionDisabled: boolean = settings.transcriptionDisabled as boolean
+    ?? process.env.DISABLE_TRANSCRIPTION === 'true'
+
   return NextResponse.json({
     snsDownload: process.env.ENABLE_SNS_DOWNLOAD === 'true',
-    transcriptionDisabled: process.env.DISABLE_TRANSCRIPTION === 'true',
+    transcriptionDisabled,
     frameIntervalSeconds: parseInt(process.env.VIDEO_FRAME_INTERVAL || '1'),
     visionFrameInterval,
   })

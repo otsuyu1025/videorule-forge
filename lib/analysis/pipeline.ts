@@ -60,6 +60,7 @@ export async function analyzeVideo(
   videoId: string,
   onStatusUpdate?: (status: VideoStatus) => Promise<void>,
   onOcrProgress?: (current: number, total: number) => Promise<void>,
+  transcriptionDisabled?: boolean,
 ): Promise<ExtractedFeatures> {
   const config = getConfig()
 
@@ -87,7 +88,7 @@ export async function analyzeVideo(
   let transcriptChunks: import('@/types').TranscriptChunk[] = []
   if (meta.hasAudio) {
     await onStatusUpdate?.('transcribing')
-    const result = await transcribeAudio(source, videoId)
+    const result = await transcribeAudio(source, videoId, transcriptionDisabled)
     transcription = result.text
     transcriptChunks = result.chunks
   }

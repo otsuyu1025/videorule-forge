@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const [snsEnabled, setSnsEnabled] = useState(false)
   const [yakujiEnabled, setYakujiEnabled] = useState(false)
   const [yakujiSaved, setYakujiSaved] = useState(false)
+  const [transcriptionDisabled, setTranscriptionDisabled] = useState(false)
+  const [transcriptionSaved, setTranscriptionSaved] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -37,6 +39,7 @@ export default function SettingsPage() {
       setFrameRetentionDays(settings.frameRetentionDays ?? 30)
       setVisionFrameInterval(features.visionFrameInterval ?? 3)
       setSnsEnabled(features.snsDownload === true)
+      setTranscriptionDisabled(features.transcriptionDisabled === true)
       setYakujiEnabled(yakuji.enabled ?? false)
       setLoading(false)
     })
@@ -73,6 +76,17 @@ export default function SettingsPage() {
       setVisionIntervalSaved(true)
       setTimeout(() => setVisionIntervalSaved(false), 2000)
     })
+  }
+
+  const toggleTranscription = async (nextDisabled: boolean) => {
+    setTranscriptionDisabled(nextDisabled)
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcriptionDisabled: nextDisabled }),
+    })
+    setTranscriptionSaved(true)
+    setTimeout(() => setTranscriptionSaved(false), 2000)
   }
 
   const toggleYakuji = async (next: boolean) => {
@@ -205,9 +219,45 @@ export default function SettingsPage() {
             )}
             <div style={{ marginTop: 14, fontSize: 12, color: '#999', lineHeight: 1.7 }}>
               現在の設定: <strong style={{ color: '#272343' }}>{frameRetentionDays}日</strong>後に自動削除<br />
-              ※ Cloudflare R2 が設定されていない場合、この設定はローカルストレージには影響しません。
+              ※ Cloudflare R2 が設定されていない場合は、自動削除対象外です。
             </div>
           </>
+        )}
+      </section>
+
+      {/* 音声文字起こし */}
+      <section style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 12, padding: 28, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', marginTop: 0, marginBottom: 6 }}>
+          音声文字起こし
+        </h2>
+        <p style={{ fontSize: 14, color: '#2D334A', marginBottom: 20, lineHeight: 1.7 }}>
+          動画解析時に Whisper で音声を文字起こしし、検品に活用します。<br />
+          メモリ使用量（約244MB）が増加するため、Railway Hobby プランでは OFFを推奨します。
+        </p>
+        {loading ? (
+          <div style={{ color: '#999', fontSize: 14 }}>読み込み中...</div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <button
+              onClick={() => toggleTranscription(!transcriptionDisabled)}
+              style={{
+                width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+                background: !transcriptionDisabled ? '#272343' : '#BAE8E8',
+                position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 3, left: !transcriptionDisabled ? 27 : 3,
+                width: 22, height: 22, borderRadius: '50%',
+                background: !transcriptionDisabled ? '#FFD803' : '#fff',
+                transition: 'left 0.2s', display: 'block',
+              }} />
+            </button>
+            <span style={{ fontSize: 14, color: '#272343' }}>
+              {!transcriptionDisabled ? '有効 — 音声を文字起こしして検品に活用します' : '無効 — 音声文字起こしをスキップします'}
+            </span>
+            {transcriptionSaved && <span style={{ fontSize: 13, color: '#27ae60', fontWeight: 600 }}>✓ 保存しました</span>}
+          </div>
         )}
       </section>
 

@@ -123,11 +123,13 @@ export async function POST(
         await db.write()
       }
 
+      const transcriptionDisabled = !!(db.data.settings as Record<string, unknown> | undefined)?.transcriptionDisabled
+
       const extracted = await analyzeVideo(source, id, async (status) => {
         video.status = status
         video.analysisProgress = undefined
         await db.write()
-      }, onOcrProgress)
+      }, onOcrProgress, transcriptionDisabled)
 
       // Tesseract の文字化けを Vision OCR で修正（60秒でタイムアウト、失敗時は Tesseract 結果を維持）
       const visionInterval: number = (db.data.settings as Record<string, unknown> | undefined)?.visionFrameInterval as number

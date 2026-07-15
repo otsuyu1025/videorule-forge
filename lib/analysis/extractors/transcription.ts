@@ -17,8 +17,8 @@ type Transcriber = (
   chunks?: Array<{ timestamp: [number | null, number | null]; text: string }>
 }>
 
-// DISABLE_TRANSCRIPTION=true で Whisper を完全にスキップ（Railway などメモリ制約環境向け）
-const TRANSCRIPTION_DISABLED = process.env.DISABLE_TRANSCRIPTION === 'true'
+// 環境変数によるデフォルト無効フラグ（設定画面からも上書き可能）
+const TRANSCRIPTION_DISABLED_ENV = process.env.DISABLE_TRANSCRIPTION === 'true'
 
 // WHISPER_MODEL で使用するモデルを切り替え可能
 // whisper-tiny: ~39MB, whisper-small: ~244MB (デフォルト)
@@ -27,9 +27,9 @@ const WHISPER_MODEL = process.env.WHISPER_MODEL || 'Xenova/whisper-small'
 let _transcriber: Transcriber | null = null
 let _transcriberUnavailable = false
 
-async function getTranscriber(): Promise<Transcriber | null> {
-  if (TRANSCRIPTION_DISABLED) {
-    console.log('[Whisper] DISABLE_TRANSCRIPTION=true のためスキップします')
+async function getTranscriber(disabled?: boolean): Promise<Transcriber | null> {
+  if (disabled ?? TRANSCRIPTION_DISABLED_ENV) {
+    console.log('[Whisper] 音声文字起こしが無効のためスキップします')
     return null
   }
   if (_transcriberUnavailable) return null
@@ -114,8 +114,9 @@ export interface TranscribeResult {
 export async function transcribeAudio(
   source: string,
   videoId: string,
+  disabled?: boolean,
 ): Promise<TranscribeResult> {
-  const transcriber = await getTranscriber()
+  const transcriber = await getTranscriber(disabled)
   if (!transcriber) return { text: '', chunks: [] }
 
   const audioDir = path.join(process.cwd(), 'data', 'uploads', 'audio')
