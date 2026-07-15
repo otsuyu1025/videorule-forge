@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { YakujiRule, YakujiSettings } from '@/types'
 
+type InputMode = 'text' | 'pdf' | 'txt'
+
 interface ExtractPreview {
   source_name: string
   source_updated_at: string | null
@@ -12,18 +14,19 @@ interface ExtractPreview {
 
 export default function YakujiPage() {
   const [settings, setSettings] = useState<YakujiSettings | null>(null)
-  const [url, setUrl] = useState('')
+  const [inputMode, setInputMode] = useState<InputMode>('text')
+  const [textInput, setTextInput] = useState('')
   const [extracting, setExtracting] = useState(false)
   const [preview, setPreview] = useState<ExtractPreview | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
-  const fileRef = useRef<HTMLInputElement>(null)
+  const pdfRef = useRef<HTMLInputElement>(null)
+  const txtRef = useRef<HTMLInputElement>(null)
 
   const fetchSettings = async () => {
     const res = await fetch('/api/admin/yakuji')
-    const data: YakujiSettings = await res.json()
-    setSettings(data)
+    setSettings(await res.json() as YakujiSettings)
   }
 
   useEffect(() => { fetchSettings() }, [])
@@ -34,22 +37,30 @@ export default function YakujiPage() {
     setExtracting(true)
     try {
       let res: Response
-      const file = fileRef.current?.files?.[0]
-      if (file) {
+
+      if (inputMode === 'pdf') {
+        const file = pdfRef.current?.files?.[0]
+        if (!file) { setError('PDFファイルを選択してください'); return }
         const form = new FormData()
         form.append('pdf', file)
         res = await fetch('/api/admin/yakuji/extract', { method: 'POST', body: form })
-      } else if (url.trim()) {
+
+      } else if (inputMode === 'txt') {
+        const file = txtRef.current?.files?.[0]
+        if (!file) { setError('テキストファイルを選択してください'); return }
+        const form = new FormData()
+        form.append('file', file)
+        res = await fetch('/api/admin/yakuji/extract', { method: 'POST', body: form })
+
+      } else {
+        if (!textInput.trim()) { setError('テキストを入力してください'); return }
         res = await fetch('/api/admin/yakuji/extract', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: url.trim() }),
+          body: JSON.stringify({ text: textInput }),
         })
-      } else {
-        setError('URLまたはPDFファイルを指定してください')
-        setExtracting(false)
-        return
       }
+
       const data = await res.json()
       if (!res.ok) { setError(data.error || '取得エラー'); return }
       setPreview(data as ExtractPreview)
@@ -68,7 +79,6 @@ export default function YakujiPage() {
       const body: Partial<YakujiSettings> = {
         source_name: preview.source_name,
         source_updated_at: preview.source_updated_at ?? undefined,
-        source_url: url.trim() || undefined,
         imported_at: new Date().toISOString(),
         rules: preview.rules,
       }
@@ -80,8 +90,9 @@ export default function YakujiPage() {
       const updated: YakujiSettings = await res.json()
       setSettings(updated)
       setPreview(null)
-      setUrl('')
-      if (fileRef.current) fileRef.current.value = ''
+      setTextInput('')
+      if (pdfRef.current) pdfRef.current.value = ''
+      if (txtRef.current) txtRef.current.value = ''
       setSuccessMsg('薬機法ルールを更新しました')
       setTimeout(() => setSuccessMsg(''), 4000)
     } catch (e) {
@@ -89,6 +100,12 @@ export default function YakujiPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const TAB_LABELS: Record<InputMode, string> = {
+    text: 'テキスト入力',
+    txt: 'テキストファイル',
+    pdf: 'PDF',
   }
 
   return (
@@ -143,45 +160,81 @@ export default function YakujiPage() {
       <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 14, padding: '24px 28px', marginBottom: 24 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 6 }}>ルールを更新する</div>
         <div style={{ fontSize: 13, color: '#2D334A', opacity: 0.7, marginBottom: 20, lineHeight: 1.7 }}>
-          法令改正時は、厚生労働省の資料URLまたはPDFをアップロードしてください。<br />
+          法令改正時は、厚生労働省の「医薬品等適正広告基準」の内容をいずれかの方法で入力してください。<br />
           AIが内容を解析し、新しい判定ルールを自動抽出します。
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
-            URLから取得
-          </label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="url"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              placeholder="https://www.mhlw.go.jp/..."
+        {/* 入力モード切替タブ */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #E3F6F5' }}>
+          {(['text', 'txt', 'pdf'] as InputMode[]).map(mode => (
+            <button
+              key={mode}
+              onClick={() => { setInputMode(mode); setError('') }}
               style={{
-                flex: 1, padding: '9px 14px', border: '1px solid #BAE8E8',
-                borderRadius: 8, fontSize: 14, color: '#272343', outline: 'none',
+                padding: '8px 16px', border: 'none', background: 'transparent',
+                fontSize: 13, fontWeight: inputMode === mode ? 700 : 400,
+                color: inputMode === mode ? '#272343' : '#999',
+                borderBottom: inputMode === mode ? '2px solid #272343' : 'none',
+                cursor: 'pointer', marginBottom: -2,
+              }}
+            >
+              {TAB_LABELS[mode]}
+            </button>
+          ))}
+        </div>
+
+        {inputMode === 'text' && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
+              薬機法の広告規制に関する内容を貼り付けてください
+            </label>
+            <textarea
+              value={textInput}
+              onChange={e => setTextInput(e.target.value)}
+              placeholder="例: 医薬品等適正広告基準 第○条 医薬品の広告は、その効能効果について虚偽誇大な表現をしてはならない..."
+              rows={10}
+              style={{
+                width: '100%', padding: '10px 14px', border: '1px solid #BAE8E8',
+                borderRadius: 8, fontSize: 13, color: '#272343', outline: 'none',
+                resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box',
               }}
             />
+            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 4 }}>
+              {textInput.length.toLocaleString()} 文字（上限 20,000 文字）
+            </div>
           </div>
-        </div>
+        )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 1, height: 1, background: '#E3F6F5' }} />
-          <span style={{ fontSize: 12, color: '#BAE8E8' }}>または</span>
-          <div style={{ flex: 1, height: 1, background: '#E3F6F5' }} />
-        </div>
+        {inputMode === 'txt' && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
+              テキストファイル（.txt）を選択
+            </label>
+            <input
+              ref={txtRef}
+              type="file"
+              accept=".txt,text/plain"
+              style={{ fontSize: 14, color: '#272343' }}
+            />
+          </div>
+        )}
 
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
-            PDFをアップロード
-          </label>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf"
-            style={{ fontSize: 14, color: '#272343' }}
-          />
-        </div>
+        {inputMode === 'pdf' && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
+              PDFファイルを選択
+            </label>
+            <input
+              ref={pdfRef}
+              type="file"
+              accept=".pdf"
+              style={{ fontSize: 14, color: '#272343' }}
+            />
+            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 6, lineHeight: 1.6 }}>
+              推奨: 厚生労働省「医薬品等適正広告基準」のPDF
+            </div>
+          </div>
+        )}
 
         {error && (
           <div style={{ background: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: 8, padding: '10px 14px', marginBottom: 14, color: '#721c24', fontSize: 13 }}>

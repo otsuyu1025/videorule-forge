@@ -4,37 +4,6 @@ import type { YakujiRule } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-function cleanHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-async function extractTextFromUrl(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; YakujiBot/1.0)' },
-  })
-  if (!res.ok) throw new Error(`URL取得失敗: ${res.status} ${res.statusText}`)
-  const contentType = res.headers.get('content-type') || ''
-  if (contentType.includes('pdf')) {
-    const buf = await res.arrayBuffer()
-    return extractTextFromPdfBuffer(Buffer.from(buf))
-  }
-  const html = await res.text()
-  const cleaned = cleanHtml(html)
-  console.log(`[yakuji/extract] URL cleaned text length: ${cleaned.length}`)
-  // 長い法令テキストは先頭15000字 + 後半5000字を使用（広告規制条文は後半にあることが多い）
-  if (cleaned.length <= 20000) return cleaned
-  return cleaned.slice(0, 15000) + '\n…（中略）…\n' + cleaned.slice(-5000)
-}
-
 async function extractTextFromPdfBuffer(buf: Buffer): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pdfParse = require('pdf-parse')
@@ -94,8 +63,32 @@ const EXTRACT_PROMPT = (text: string) =>
 【資料テキスト】
 ${text}
 
-資料が法令全文の場合は、第66条（誇大広告等の禁止）、第67条（特定疾病用の医薬品の広告禁止）など広告規制に関連する条文を重点的に参照し、実際の動画広告審査で使えるルールに落とし込んでください。
+資料が法令全文の場合は誇大広告・虚偽広告の禁止に関する条文を重点的に参照し、
+実際の広告審査で使えるルールに落とし込んでください。
 save_yakuji_rules ツールを呼び出してルールを保存してください。`
+
+async function callClaude(rawText: string) {
+  const message = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 4096,
+    tools: [EXTRACT_TOOL],
+    tool_choice: { type: 'any' },
+    messages: [{ role: 'user', content: EXTRACT_PROMPT(rawText.slice(0, 20000)) }],
+  })
+
+  const toolUse = message.content.find(b => b.type === 'tool_use')
+  if (!toolUse || toolUse.type !== 'tool_use') {
+    const textBlock = message.content.find(b => b.type === 'text')
+    const claudeText = textBlock && textBlock.type === 'text' ? textBlock.text : ''
+    console.error('[yakuji/extract] tool use not called. Claude text:', claudeText.slice(0, 500))
+    return null
+  }
+  return toolUse.input as {
+    source_name: string
+    source_updated_at?: string
+    rules: YakujiRule[]
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,58 +97,40 @@ export async function POST(request: NextRequest) {
 
     if (contentType.includes('multipart/form-data')) {
       const form = await request.formData()
-      const url = form.get('url') as string | null
-      const file = form.get('pdf') as File | null
+      const pdfFile = form.get('pdf') as File | null
+      const txtFile = form.get('file') as File | null
 
-      if (url) {
-        rawText = await extractTextFromUrl(url)
-      } else if (file) {
-        rawText = await extractTextFromPdfBuffer(Buffer.from(await file.arrayBuffer()))
+      if (pdfFile) {
+        rawText = await extractTextFromPdfBuffer(Buffer.from(await pdfFile.arrayBuffer()))
+      } else if (txtFile) {
+        rawText = (await txtFile.text()).slice(0, 20000)
       } else {
-        return Response.json({ error: 'url または pdf が必要です' }, { status: 400 })
+        return Response.json({ error: 'ファイルが必要です' }, { status: 400 })
       }
     } else {
       const body = await request.json()
-      if (body.url) {
-        rawText = await extractTextFromUrl(body.url)
+      if (typeof body.text === 'string' && body.text.trim()) {
+        rawText = body.text.trim()
       } else {
-        return Response.json({ error: 'url が必要です' }, { status: 400 })
+        return Response.json({ error: 'text フィールドが必要です' }, { status: 400 })
       }
     }
 
     if (!rawText.trim()) {
-      return Response.json({ error: 'テキストを抽出できませんでした。PDFをお試しください。' }, { status: 422 })
+      return Response.json({ error: 'テキストを抽出できませんでした' }, { status: 422 })
     }
 
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      tools: [EXTRACT_TOOL],
-      tool_choice: { type: 'any' },
-      messages: [{ role: 'user', content: EXTRACT_PROMPT(rawText) }],
-    })
-
-    const toolUse = message.content.find(b => b.type === 'tool_use')
-    if (!toolUse || toolUse.type !== 'tool_use') {
-      // tool useが呼ばれなかった場合はテキストをログして詳細エラーを返す
-      const textBlock = message.content.find(b => b.type === 'text')
-      const claudeText = textBlock && textBlock.type === 'text' ? textBlock.text : ''
-      console.error('[yakuji/extract] tool use not called. Claude text:', claudeText.slice(0, 500))
+    const result = await callClaude(rawText)
+    if (!result) {
       return Response.json({
-        error: `AIがルールを抽出できませんでした。資料に薬機法の広告規制内容が含まれているか確認してください。（推奨: 厚生労働省「医薬品等適正広告基準」のPDF）`,
+        error: 'AIがルールを抽出できませんでした。資料に薬機法の広告規制内容が含まれているか確認してください。',
       }, { status: 422 })
     }
 
-    const input = toolUse.input as {
-      source_name: string
-      source_updated_at?: string
-      rules: YakujiRule[]
-    }
-
     return Response.json({
-      source_name: input.source_name,
-      source_updated_at: input.source_updated_at || null,
-      rules: input.rules,
+      source_name: result.source_name,
+      source_updated_at: result.source_updated_at || null,
+      rules: result.rules,
     })
   } catch (e) {
     console.error('[yakuji/extract]', e)
