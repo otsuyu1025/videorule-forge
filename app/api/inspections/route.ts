@@ -63,10 +63,11 @@ export async function POST(request: NextRequest) {
     // 通常ルールによる検品
     const results = await inspectVideo(feature, rules, originalDims, visionInterval)
 
-    // 薬機法チェック（有効時のみ）
+    // 薬機法チェック（db.json の設定で有効時のみ）
     const yakuji = readYakuji()
-    if (yakuji?.enabled) {
-      const yakujiResults = await inspectYakuji(feature, yakuji)
+    const yakujiEnabled = !!(db.data.settings as Record<string, unknown>)?.yakujiEnabled
+    if (yakujiEnabled && yakuji) {
+      const yakujiResults = await inspectYakuji(feature, { ...yakuji, enabled: true })
       results.push(...yakujiResults)
       inspection.yakujiReference = {
         sourceName: yakuji.source_name ?? '医薬品等適正広告基準',
