@@ -316,16 +316,72 @@ export default function YakujiPage() {
       {/* 現在のルール一覧 */}
       {settings && settings.rules && settings.rules.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 14, padding: '24px 28px' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#272343', marginBottom: 16 }}>
-            現在の判定ルール（{settings.rules.length} カテゴリ）
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#272343' }}>
+              判定ルール
+            </div>
+            <div style={{ fontSize: 13, color: '#BAE8E8' }}>
+              {settings.rules.filter(r => r.enabled !== false).length} / {settings.rules.length} カテゴリ有効
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.6, marginBottom: 16, lineHeight: 1.6 }}>
+            業界・用途に応じて不要なカテゴリをOFFにすると、そのカテゴリはClaudeに送信されず費用を節約できます。
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {settings.rules.map(rule => (
-              <div key={rule.id} style={{ background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 8, padding: '12px 16px' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>{rule.label}</div>
-                <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.7, lineHeight: 1.5 }}>{rule.description}</div>
-              </div>
-            ))}
+            {settings.rules.map(rule => {
+              const isEnabled = rule.enabled !== false
+              return (
+                <div
+                  key={rule.id}
+                  style={{
+                    background: isEnabled ? '#FAFAFA' : '#F5F5F5',
+                    border: `1px solid ${isEnabled ? '#E3F6F5' : '#E0E0E0'}`,
+                    borderRadius: 8, padding: '12px 16px',
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    opacity: isEnabled ? 1 : 0.55,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>{rule.label}</div>
+                    <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.7, lineHeight: 1.5 }}>{rule.description}</div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const next = !isEnabled
+                      setSettings(prev => prev ? {
+                        ...prev,
+                        rules: prev.rules.map(r => r.id === rule.id ? { ...r, enabled: next } : r),
+                      } : prev)
+                      await fetch('/api/admin/yakuji', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ruleId: rule.id, ruleEnabled: next }),
+                      })
+                    }}
+                    title={isEnabled ? 'OFFにする' : 'ONにする'}
+                    style={{
+                      flexShrink: 0,
+                      width: 40, height: 22,
+                      borderRadius: 11,
+                      border: 'none',
+                      background: isEnabled ? '#272343' : '#CCC',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: 3, left: isEnabled ? 21 : 3,
+                      width: 16, height: 16, borderRadius: '50%',
+                      background: isEnabled ? '#FFD803' : '#fff',
+                      transition: 'left 0.2s',
+                      display: 'block',
+                    }} />
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

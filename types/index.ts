@@ -146,6 +146,7 @@ export interface YakujiRule {
   description: string
   examples_ng: string[]
   examples_ok?: string[]
+  enabled?: boolean  // 省略時はtrue扱い
 }
 
 export interface YakujiSettings {

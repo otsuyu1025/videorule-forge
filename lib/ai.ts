@@ -415,6 +415,10 @@ export async function inspectYakuji(
 ): Promise<InspectionResult[]> {
   if (!yakuji.enabled || !yakuji.rules || yakuji.rules.length === 0) return []
 
+  // enabled: false のルールを除外してトークン節約・不要な呼び出しをスキップ
+  const enabledRules = yakuji.rules.filter(r => r.enabled !== false)
+  if (enabledRules.length === 0) return []
+
   const textSources: string[] = []
   if (feature.ocrTexts && feature.ocrTexts.length > 0) {
     textSources.push(`【字幕・テロップ（OCR）】\n${feature.ocrTexts.join('\n')}`)
@@ -426,7 +430,7 @@ export async function inspectYakuji(
     textSources.push('（テキスト・音声データなし）')
   }
 
-  const rulesText = yakuji.rules.map(r =>
+  const rulesText = enabledRules.map(r =>
     `[${r.id}] ${r.label}: ${r.description}\nNG例: ${r.examples_ng.join('、')}`
   ).join('\n\n')
 

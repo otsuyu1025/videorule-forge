@@ -43,6 +43,17 @@ export async function PUT(request: NextRequest) {
     await db.write()
   }
 
+  // 個別ルールのON/OFF（{ ruleId: string, ruleEnabled: boolean }）
+  if ('ruleId' in body && 'ruleEnabled' in body) {
+    const current = readYakujiRules()
+    writeYakujiRules({
+      ...current,
+      rules: current.rules.map(r =>
+        r.id === body.ruleId ? { ...r, enabled: body.ruleEnabled } : r
+      ),
+    })
+  }
+
   // ルール・資料情報は yakuji.json に保存
   const ruleKeys = ['source_name', 'source_updated_at', 'source_url', 'imported_at', 'rules']
   if (ruleKeys.some(k => k in body)) {
