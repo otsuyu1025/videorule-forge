@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { YakujiRule, YakujiSettings } from '@/types'
 
-type InputMode = 'text' | 'txt' | 'pdf' | 'json'
+type InputMode = 'text' | 'txt' | 'json'
 
 interface ExtractPreview {
   source_name: string
@@ -15,7 +15,6 @@ interface ExtractPreview {
 const TAB_LABELS: Record<InputMode, string> = {
   text: 'テキスト入力',
   txt: 'テキストファイル',
-  pdf: 'PDF',
   json: 'JSONファイル',
 }
 
@@ -25,8 +24,6 @@ export default function YakujiPage() {
   const [textInput, setTextInput] = useState('')
   const [loadedText, setLoadedText] = useState('')   // txt/pdf → 編集可能テキスト
   const [loadedFileName, setLoadedFileName] = useState('')
-  const [loadingText, setLoadingText] = useState(false)
-  const [selectedPdfName, setSelectedPdfName] = useState('')
   const [selectedTxtName, setSelectedTxtName] = useState('')
   const [selectedJsonName, setSelectedJsonName] = useState('')
   const [extracting, setExtracting] = useState(false)
@@ -34,7 +31,6 @@ export default function YakujiPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
-  const pdfRef = useRef<HTMLInputElement>(null)
   const txtRef = useRef<HTMLInputElement>(null)
   const jsonRef = useRef<HTMLInputElement>(null)
 
@@ -50,7 +46,6 @@ export default function YakujiPage() {
     setError('')
     setLoadedText('')
     setLoadedFileName('')
-    setSelectedPdfName('')
     setSelectedTxtName('')
     setSelectedJsonName('')
     setPreview(null)
@@ -64,27 +59,6 @@ export default function YakujiPage() {
     const text = await file.text()
     setLoadedText(text.slice(0, 20000))
     setLoadedFileName(file.name)
-  }
-
-  // PDF: サーバーでテキスト抽出のみ（Claude不使用）
-  const handlePdfExtractText = async () => {
-    const file = pdfRef.current?.files?.[0]
-    if (!file) { setError('PDFファイルを選択してください'); return }
-    setError('')
-    setLoadingText(true)
-    try {
-      const form = new FormData()
-      form.append('pdf', file)
-      const res = await fetch('/api/admin/yakuji/extract?textOnly=true', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error || 'テキスト抽出エラー'); return }
-      setLoadedText(data.text)
-      setLoadedFileName(file.name)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'エラーが発生しました')
-    } finally {
-      setLoadingText(false)
-    }
   }
 
   // JSON: クライアント側でパース・直接インポート（Claude不使用）
@@ -160,10 +134,8 @@ export default function YakujiPage() {
       setTextInput('')
       setLoadedText('')
       setLoadedFileName('')
-      if (pdfRef.current) pdfRef.current.value = ''
       if (txtRef.current) txtRef.current.value = ''
       if (jsonRef.current) jsonRef.current.value = ''
-      setSelectedPdfName('')
       setSelectedTxtName('')
       setSelectedJsonName('')
       setSuccessMsg('薬機法ルールを更新しました')
@@ -191,11 +163,22 @@ export default function YakujiPage() {
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>薬機法</h1>
         <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
-          薬機法が改正されたら、このページから最新情報を登録してください。<br />
-          薬機法チェックのON/OFFは
-          <Link href="/settings" style={{ color: '#272343', fontWeight: 600 }}>設定画面</Link>
-          から変更できます。
+          薬機法が改正されたら、このページから最新情報を登録してください。
         </p>
+        <div style={{ marginTop: 10, fontSize: 13, lineHeight: 2 }}>
+          <div>
+            <span style={{ display: 'inline-block', background: '#d4edda', color: '#155724', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 8, verticalAlign: 'middle' }}>必須</span>
+            <span style={{ color: '#2D334A' }}>第十章　医薬品等の広告</span>
+          </div>
+          <div>
+            <span style={{ display: 'inline-block', background: '#fff3cd', color: '#856404', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 8, verticalAlign: 'middle' }}>任意</span>
+            <span style={{ color: '#2D334A', opacity: 0.8 }}>第十一〜十八章</span>
+          </div>
+          <div>
+            <span style={{ display: 'inline-block', background: '#e2e3e5', color: '#6c757d', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 8, verticalAlign: 'middle' }}>不要</span>
+            <span style={{ color: '#2D334A', opacity: 0.5 }}>第一〜九章</span>
+          </div>
+        </div>
       </div>
 
       {successMsg && (
@@ -235,7 +218,7 @@ export default function YakujiPage() {
 
         {/* タブ */}
         <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #E3F6F5' }}>
-          {(['text', 'txt', 'pdf', 'json'] as InputMode[]).map(mode => (
+          {(['text', 'txt', 'json'] as InputMode[]).map(mode => (
             <button
               key={mode}
               onClick={() => switchMode(mode)}
@@ -357,86 +340,6 @@ export default function YakujiPage() {
           </div>
         )}
 
-        {/* PDF */}
-        {inputMode === 'pdf' && !loadedText && (
-          <div style={{ marginBottom: 20 }}>
-            <div
-              onClick={() => { if (!loadingText) pdfRef.current?.click() }}
-              style={{
-                border: `2px dashed ${selectedPdfName ? '#272343' : '#BAE8E8'}`,
-                borderRadius: 10, padding: '28px 20px', textAlign: 'center',
-                cursor: loadingText ? 'default' : 'pointer',
-                background: selectedPdfName ? '#F5FCFC' : '#FAFAFA',
-                transition: 'border-color 0.15s, background 0.15s', marginBottom: 14,
-              }}
-              onMouseEnter={e => { if (!selectedPdfName && !loadingText) e.currentTarget.style.borderColor = '#272343' }}
-              onMouseLeave={e => { if (!selectedPdfName) e.currentTarget.style.borderColor = '#BAE8E8' }}
-            >
-              {selectedPdfName ? (
-                <>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>📄</div>
-                  <div style={{ fontWeight: 700, color: '#272343', fontSize: 15, marginBottom: 4 }}>{selectedPdfName}</div>
-                  <div style={{ fontSize: 12, color: '#BAE8E8' }}>クリックして変更</div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 28, marginBottom: 10 }}>📄</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>クリックしてPDFを選択</div>
-                  <div style={{ fontSize: 12, color: '#999' }}>.pdf ファイル</div>
-                </>
-              )}
-            </div>
-            <input
-              ref={pdfRef}
-              type="file"
-              accept=".pdf"
-              onChange={e => setSelectedPdfName(e.target.files?.[0]?.name ?? '')}
-              style={{ display: 'none' }}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button
-                onClick={handlePdfExtractText}
-                disabled={!selectedPdfName || loadingText}
-                style={{
-                  background: !selectedPdfName || loadingText ? '#E0E0E0' : '#272343',
-                  color: !selectedPdfName || loadingText ? '#999' : '#FFD803',
-                  border: 'none', borderRadius: 8, padding: '10px 20px',
-                  fontWeight: 700, fontSize: 14,
-                  cursor: !selectedPdfName || loadingText ? 'default' : 'pointer',
-                }}
-              >
-                {loadingText ? 'テキスト抽出中...' : 'テキストを抽出'}
-              </button>
-              <span style={{ fontSize: 11, color: '#BAE8E8' }}>pdf-parse のみ使用（Claudeは不使用）</span>
-            </div>
-          </div>
-        )}
-
-        {/* PDF読み込み後: 編集可能テキスト */}
-        {inputMode === 'pdf' && loadedText && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#272343' }}>
-                PDFから抽出したテキスト（不要な箇所を削除してから送信できます）
-              </label>
-              <span style={{ fontSize: 11, color: '#BAE8E8' }}>📎 {loadedFileName}</span>
-            </div>
-            <textarea
-              value={loadedText}
-              onChange={e => setLoadedText(e.target.value)}
-              rows={10}
-              style={{
-                width: '100%', padding: '10px 14px', border: '1px solid #BAE8E8',
-                borderRadius: 8, fontSize: 13, color: '#272343', outline: 'none',
-                resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box',
-              }}
-            />
-            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 4 }}>
-              {loadedText.length.toLocaleString()} 文字（上限 20,000 文字）
-            </div>
-          </div>
-        )}
-
         {/* JSON */}
         {inputMode === 'json' && !preview && (
           <div style={{ marginBottom: 20 }}>
@@ -516,7 +419,7 @@ export default function YakujiPage() {
             >
               {extracting ? '解析中...' : 'AIでルールを抽出'}
             </button>
-            {(inputMode === 'txt' || inputMode === 'pdf') && loadedText && (
+            {inputMode === 'txt' && loadedText && (
               <button
                 onClick={() => { setLoadedText(''); setLoadedFileName('') }}
                 style={{
