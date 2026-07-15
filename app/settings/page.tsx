@@ -24,16 +24,20 @@ export default function SettingsPage() {
   const [visionIntervalSaved, setVisionIntervalSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [snsEnabled, setSnsEnabled] = useState(false)
+  const [yakujiEnabled, setYakujiEnabled] = useState(false)
+  const [yakujiSaved, setYakujiSaved] = useState(false)
 
   useEffect(() => {
     Promise.all([
       fetch('/api/settings').then(r => r.json()),
       fetch('/api/features').then(r => r.json()),
-    ]).then(([settings, features]) => {
+      fetch('/api/admin/yakuji').then(r => r.json()),
+    ]).then(([settings, features, yakuji]) => {
       setSnsBrowser(settings.snsBrowser ?? '')
       setFrameRetentionDays(settings.frameRetentionDays ?? 30)
       setVisionFrameInterval(features.visionFrameInterval ?? 3)
       setSnsEnabled(features.snsDownload === true)
+      setYakujiEnabled(yakuji.enabled ?? false)
       setLoading(false)
     })
   }, [])
@@ -69,6 +73,17 @@ export default function SettingsPage() {
       setVisionIntervalSaved(true)
       setTimeout(() => setVisionIntervalSaved(false), 2000)
     })
+  }
+
+  const toggleYakuji = async (next: boolean) => {
+    setYakujiEnabled(next)
+    await fetch('/api/admin/yakuji', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: next }),
+    })
+    setYakujiSaved(true)
+    setTimeout(() => setYakujiSaved(false), 2000)
   }
 
   const selectedBrowser = BROWSERS.find(b => b.value === snsBrowser) ?? BROWSERS[0]
@@ -241,6 +256,44 @@ export default function SettingsPage() {
               目安: 30秒の動画 → {Math.min(30, Math.ceil(30 / visionFrameInterval))}枚のフレームを解析
             </div>
           </>
+        )}
+      </section>
+
+      {/* 薬機法チェック */}
+      <section style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 12, padding: 28, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', marginTop: 0, marginBottom: 6 }}>
+          薬機法チェック
+        </h2>
+        <p style={{ fontSize: 14, color: '#2D334A', marginBottom: 20, lineHeight: 1.7 }}>
+          動画検品時に薬機法（医薬品医療機器等法）の広告規制に基づくチェックを自動で行います。<br />
+          ルールの管理・資料の更新は
+          <a href="/production-rules/yakuji" style={{ color: '#272343', fontWeight: 600 }}>動画制作ルール → 薬機法</a>
+          から行えます。
+        </p>
+        {loading ? (
+          <div style={{ color: '#999', fontSize: 14 }}>読み込み中...</div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <button
+              onClick={() => toggleYakuji(!yakujiEnabled)}
+              style={{
+                width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+                background: yakujiEnabled ? '#272343' : '#BAE8E8',
+                position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 3, left: yakujiEnabled ? 27 : 3,
+                width: 22, height: 22, borderRadius: '50%',
+                background: yakujiEnabled ? '#FFD803' : '#fff',
+                transition: 'left 0.2s', display: 'block',
+              }} />
+            </button>
+            <span style={{ fontSize: 14, color: '#272343' }}>
+              {yakujiEnabled ? '有効 — 検品時に薬機法ルールで自動チェックします' : '無効 — 薬機法チェックはスキップされます'}
+            </span>
+            {yakujiSaved && <span style={{ fontSize: 13, color: '#27ae60', fontWeight: 600 }}>✓ 保存しました</span>}
+          </div>
         )}
       </section>
 

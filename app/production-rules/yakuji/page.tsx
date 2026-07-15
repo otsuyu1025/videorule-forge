@@ -12,7 +12,6 @@ interface ExtractPreview {
 
 export default function YakujiPage() {
   const [settings, setSettings] = useState<YakujiSettings | null>(null)
-  const [enabled, setEnabled] = useState(false)
   const [url, setUrl] = useState('')
   const [extracting, setExtracting] = useState(false)
   const [preview, setPreview] = useState<ExtractPreview | null>(null)
@@ -25,21 +24,9 @@ export default function YakujiPage() {
     const res = await fetch('/api/admin/yakuji')
     const data: YakujiSettings = await res.json()
     setSettings(data)
-    setEnabled(data.enabled)
   }
 
   useEffect(() => { fetchSettings() }, [])
-
-  const toggleEnabled = async (next: boolean) => {
-    setEnabled(next)
-    await fetch('/api/admin/yakuji', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: next }),
-    })
-    setSuccessMsg(next ? '薬機法チェックを有効にしました' : '薬機法チェックを無効にしました')
-    setTimeout(() => setSuccessMsg(''), 3000)
-  }
 
   const handleExtract = async () => {
     setError('')
@@ -92,7 +79,6 @@ export default function YakujiPage() {
       })
       const updated: YakujiSettings = await res.json()
       setSettings(updated)
-      setEnabled(updated.enabled)
       setPreview(null)
       setUrl('')
       if (fileRef.current) fileRef.current.value = ''
@@ -119,8 +105,9 @@ export default function YakujiPage() {
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>薬機法</h1>
         <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
-          動画広告の薬機法（医薬品医療機器等法）チェックを設定します。<br />
-          有効にすると、通常ルールとは独立して薬機法の判定を行います。
+          薬機法チェックのON/OFFは
+          <Link href="/settings" style={{ color: '#272343', fontWeight: 600 }}>設定画面</Link>
+          から変更できます。
         </p>
       </div>
 
@@ -129,32 +116,6 @@ export default function YakujiPage() {
           {successMsg}
         </div>
       )}
-
-      {/* ON/OFF トグル */}
-      <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 14, padding: '24px 28px', marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 4 }}>薬機法チェック</div>
-            <div style={{ fontSize: 13, color: '#2D334A', opacity: 0.7 }}>
-              {enabled ? '有効 — 検品時に薬機法ルールで自動チェックします' : '無効 — 薬機法チェックはスキップされます'}
-            </div>
-          </div>
-          <button
-            onClick={() => toggleEnabled(!enabled)}
-            style={{
-              width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
-              background: enabled ? '#272343' : '#BAE8E8',
-              position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-            }}
-          >
-            <span style={{
-              position: 'absolute', top: 3, left: enabled ? 27 : 3,
-              width: 22, height: 22, borderRadius: '50%', background: enabled ? '#FFD803' : '#fff',
-              transition: 'left 0.2s', display: 'block',
-            }} />
-          </button>
-        </div>
-      </div>
 
       {/* 現在の参照資料 */}
       {settings && settings.source_name && (
