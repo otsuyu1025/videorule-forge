@@ -271,7 +271,7 @@ export default function RulesPage() {
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <span style={{ background: '#272343', color: '#FFD803', fontSize: 12, fontWeight: 700, padding: '3px 12px', borderRadius: 20 }}>
-              ⚖️ 薬機法
+              薬機法
             </span>
             <span style={{ fontSize: 12, color: '#BAE8E8' }}>
               {(yakuji.rules?.length ?? 0) > 0
