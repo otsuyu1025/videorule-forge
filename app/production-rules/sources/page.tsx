@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { Video, Guideline } from '@/types'
 
-type FilterType = 'all' | 'sampleVideo' | 'guideline'
+type FilterType = 'all' | 'sampleVideo' | 'guideline' | 'yakuji'
 
 type SourceItem =
   | { kind: 'sampleVideo'; data: Video }
@@ -53,6 +53,9 @@ export default function SourcesPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [loading, setLoading] = useState(true)
   const [yakujiEnabled, setYakujiEnabled] = useState(false)
+  const [yakujiSettings, setYakujiSettings] = useState<{
+    enabled: boolean; source_name?: string; source_updated_at?: string; imported_at?: string; rules: unknown[]
+  } | null>(null)
 
   const [guidCandCounts, setGuidCandCounts] = useState<Record<string, number>>({})
 
@@ -74,6 +77,7 @@ export default function SourcesPage() {
       fetch('/api/admin/yakuji').then(r => r.json()),
     ])
     setYakujiEnabled(yakuji.enabled ?? false)
+    setYakujiSettings(yakuji)
     const counts: Record<string, number> = {}
     for (const c of candidates) {
       if (c.guidelineId) counts[c.guidelineId] = (counts[c.guidelineId] || 0) + 1
@@ -138,15 +142,15 @@ export default function SourcesPage() {
           </button>
         ))}
         {yakujiEnabled && (
-          <Link href="/production-rules/yakuji" style={{
-            padding: '6px 16px', borderRadius: 20,
-            border: '1px solid #BAE8E8',
-            background: '#fff', color: '#2D334A',
-            fontWeight: 400, fontSize: 13, textDecoration: 'none',
-            display: 'inline-flex', alignItems: 'center', gap: 4,
+          <button onClick={() => setFilter('yakuji')} style={{
+            padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
+            border: filter === 'yakuji' ? '2px solid #272343' : '1px solid #BAE8E8',
+            background: filter === 'yakuji' ? '#272343' : '#fff',
+            color: filter === 'yakuji' ? '#FFD803' : '#2D334A',
+            fontWeight: filter === 'yakuji' ? 700 : 400, fontSize: 13,
           }}>
             薬機法
-          </Link>
+          </button>
         )}
         <button onClick={() => setFilter('sampleVideo')} style={{
           padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
@@ -159,9 +163,66 @@ export default function SourcesPage() {
         </button>
       </div>
 
+      {/* 薬機法フィルター表示 */}
+      {!loading && filter === 'yakuji' && (
+        <div>
+          {yakujiSettings && (yakujiSettings.rules?.length ?? 0) > 0 ? (
+            <div style={{
+              background: '#f0faf5', border: '1px solid #27ae60',
+              borderRadius: 12, padding: '18px 22px',
+              display: 'flex', alignItems: 'center', gap: 16,
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: '#E3F6F5', color: '#272343', padding: '3px 10px', borderRadius: 20 }}>薬機法</span>
+                  <span style={{ fontSize: 12, color: '#27ae60', fontWeight: 600 }}>● 登録済み</span>
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 16, color: '#272343' }}>
+                  {yakujiSettings.source_name ?? '医薬品等適正広告基準'}
+                </div>
+                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                  判定ルール: {yakujiSettings.rules.length} カテゴリ
+                  {yakujiSettings.source_updated_at && (
+                    <span style={{ marginLeft: 12 }}>
+                      資料更新日: {new Date(yakujiSettings.source_updated_at).toLocaleDateString('ja-JP')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Link href="/production-rules/yakuji" style={{
+                background: '#272343', color: '#FFD803',
+                padding: '8px 16px', borderRadius: 8,
+                textDecoration: 'none', fontWeight: 700, fontSize: 13,
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                編集する
+              </Link>
+            </div>
+          ) : (
+            <div style={{ background: '#E3F6F5', borderRadius: 14, padding: 48, textAlign: 'center' }}>
+              <div style={{ fontSize: 36, marginBottom: 14 }}>⚖️</div>
+              <div style={{ fontWeight: 700, fontSize: 17, color: '#272343', marginBottom: 8 }}>
+                薬機法ルールが未登録です
+              </div>
+              <div style={{ fontSize: 14, color: '#2D334A', lineHeight: 1.8, marginBottom: 20, opacity: 0.8 }}>
+                薬機法の広告規制資料をアップロードすると、<br />
+                AIが自動的に判定ルールを抽出します。
+              </div>
+              <Link href="/production-rules/yakuji" style={{
+                background: '#272343', color: '#FFD803', padding: '11px 24px',
+                borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14,
+                display: 'inline-block',
+              }}>
+                薬機法をアップロードする
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ color: '#2D334A', opacity: 0.6 }}>読み込み中...</div>
-      ) : filtered.length === 0 ? (
+      ) : filter !== 'yakuji' && filtered.length === 0 ? (
         <div style={{ background: '#E3F6F5', borderRadius: 14, padding: 48, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 14 }}>🗂️</div>
           <div style={{ fontWeight: 700, fontSize: 17, color: '#272343', marginBottom: 8 }}>
@@ -179,7 +240,7 @@ export default function SourcesPage() {
             最初の知識ソースを追加する
           </Link>
         </div>
-      ) : (
+      ) : filter !== 'yakuji' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map(item => {
             if (item.kind === 'sampleVideo') {
@@ -303,7 +364,7 @@ export default function SourcesPage() {
               : <Link key={g.id} href={`/guidelines/${g.id}`} style={{ textDecoration: 'none' }}>{gCardInner}</Link>
           })}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
