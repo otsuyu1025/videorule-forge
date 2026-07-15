@@ -32,7 +32,7 @@ export default function YakujiPage() {
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
-  const [editRuleForm, setEditRuleForm] = useState({ label: '', description: '', examples_ng: '', examples_ok: '' })
+  const [editRuleForm, setEditRuleForm] = useState({ label: '', description: '', source_article: '', examples_ng: '', examples_ok: '' })
   const txtRef = useRef<HTMLInputElement>(null)
   const jsonRef = useRef<HTMLInputElement>(null)
 
@@ -154,6 +154,7 @@ export default function YakujiPage() {
     setEditRuleForm({
       label: rule.label,
       description: rule.description,
+      source_article: rule.source_article ?? '',
       examples_ng: rule.examples_ng.join('\n'),
       examples_ok: (rule.examples_ok ?? []).join('\n'),
     })
@@ -164,6 +165,7 @@ export default function YakujiPage() {
     const ruleData = {
       label: editRuleForm.label.trim(),
       description: editRuleForm.description.trim(),
+      source_article: editRuleForm.source_article.trim() || undefined,
       examples_ng: editRuleForm.examples_ng.split('\n').map(s => s.trim()).filter(Boolean),
       examples_ok: editRuleForm.examples_ok.split('\n').map(s => s.trim()).filter(Boolean),
     }
@@ -600,6 +602,15 @@ export default function YakujiPage() {
                           style={{ width: '100%', padding: '8px 10px', border: '1px solid #BAE8E8', borderRadius: 6, fontSize: 13, color: '#272343', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6 }}
                         />
                       </div>
+                      <div>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#272343', display: 'block', marginBottom: 4 }}>引用元（例: 第十章第六十六条）</label>
+                        <input
+                          value={editRuleForm.source_article}
+                          onChange={e => setEditRuleForm({ ...editRuleForm, source_article: e.target.value })}
+                          placeholder="不明"
+                          style={{ width: '100%', padding: '8px 10px', border: '1px solid #BAE8E8', borderRadius: 6, fontSize: 13, color: '#272343', boxSizing: 'border-box', outline: 'none' }}
+                        />
+                      </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <div>
                           <label style={{ fontSize: 12, fontWeight: 700, color: '#e74c3c', display: 'block', marginBottom: 4 }}>NG例（1行1件）</label>
@@ -652,8 +663,11 @@ export default function YakujiPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>{rule.label}</div>
                     <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.7, lineHeight: 1.5 }}>{rule.description}</div>
+                    <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 4 }}>
+                      引用元: {rule.source_article ?? '不明'}
+                    </div>
                     {rule.examples_ng.length > 0 && (
-                      <div style={{ fontSize: 11, color: '#e74c3c', marginTop: 6 }}>
+                      <div style={{ fontSize: 11, color: '#e74c3c', marginTop: 4 }}>
                         NG例: {rule.examples_ng.slice(0, 3).join('、')}
                       </div>
                     )}

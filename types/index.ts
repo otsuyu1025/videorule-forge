@@ -144,6 +144,7 @@ export interface YakujiRule {
   id: string
   label: string
   description: string
+  source_article?: string  // 引用元（例: 第十章第六十六条）、不明な場合は「不明」
   examples_ng: string[]
   examples_ok?: string[]
   enabled?: boolean  // 省略時はtrue扱い

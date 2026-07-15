@@ -37,6 +37,7 @@ const EXTRACT_TOOL: Anthropic.Tool = {
             id: { type: 'string', description: 'yakuji_で始まるスネークケースのID' },
             label: { type: 'string', description: '短いカテゴリ名' },
             description: { type: 'string', description: '判定基準の説明（100字以内）' },
+            source_article: { type: 'string', description: '引用元の章・条（例: 第十章第六十六条）。不明な場合は「不明」' },
             examples_ng: {
               type: 'array',
               items: { type: 'string' },
