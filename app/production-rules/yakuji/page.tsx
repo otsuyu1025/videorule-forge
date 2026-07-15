@@ -213,7 +213,7 @@ export default function YakujiPage() {
         <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 6 }}>ルールを更新する</div>
         <div style={{ fontSize: 13, color: '#2D334A', opacity: 0.7, marginBottom: 20, lineHeight: 1.7 }}>
           法令改正時は最新の内容をいずれかの方法で入力してください。<br />
-          テキスト・PDFは読み込み後に編集してから送信できます。JSONはAIを使わず直接インポートします。
+          テキストファイルは読み込み後に編集してから送信できます。JSONはAIを使わず直接インポートします。
         </div>
 
         {/* タブ */}
