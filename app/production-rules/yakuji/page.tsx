@@ -26,6 +26,9 @@ export default function YakujiPage() {
   const [loadedText, setLoadedText] = useState('')   // txt/pdf → 編集可能テキスト
   const [loadedFileName, setLoadedFileName] = useState('')
   const [loadingText, setLoadingText] = useState(false)
+  const [selectedPdfName, setSelectedPdfName] = useState('')
+  const [selectedTxtName, setSelectedTxtName] = useState('')
+  const [selectedJsonName, setSelectedJsonName] = useState('')
   const [extracting, setExtracting] = useState(false)
   const [preview, setPreview] = useState<ExtractPreview | null>(null)
   const [saving, setSaving] = useState(false)
@@ -47,6 +50,9 @@ export default function YakujiPage() {
     setError('')
     setLoadedText('')
     setLoadedFileName('')
+    setSelectedPdfName('')
+    setSelectedTxtName('')
+    setSelectedJsonName('')
     setPreview(null)
   }
 
@@ -157,6 +163,9 @@ export default function YakujiPage() {
       if (pdfRef.current) pdfRef.current.value = ''
       if (txtRef.current) txtRef.current.value = ''
       if (jsonRef.current) jsonRef.current.value = ''
+      setSelectedPdfName('')
+      setSelectedTxtName('')
+      setSelectedJsonName('')
       setSuccessMsg('薬機法ルールを更新しました')
       setTimeout(() => setSuccessMsg(''), 4000)
     } catch (e) {
@@ -272,23 +281,54 @@ export default function YakujiPage() {
         {/* テキストファイル */}
         {inputMode === 'txt' && !loadedText && (
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
-              テキストファイル（.txt）を選択
-            </label>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input ref={txtRef} type="file" accept=".txt,text/plain" style={{ fontSize: 14, color: '#272343' }} />
+            <div
+              onClick={() => txtRef.current?.click()}
+              style={{
+                border: `2px dashed ${selectedTxtName ? '#272343' : '#BAE8E8'}`,
+                borderRadius: 10, padding: '28px 20px', textAlign: 'center',
+                cursor: 'pointer', background: selectedTxtName ? '#F5FCFC' : '#FAFAFA',
+                transition: 'border-color 0.15s, background 0.15s', marginBottom: 14,
+              }}
+              onMouseEnter={e => { if (!selectedTxtName) e.currentTarget.style.borderColor = '#272343' }}
+              onMouseLeave={e => { if (!selectedTxtName) e.currentTarget.style.borderColor = '#BAE8E8' }}
+            >
+              {selectedTxtName ? (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>📝</div>
+                  <div style={{ fontWeight: 700, color: '#272343', fontSize: 15, marginBottom: 4 }}>{selectedTxtName}</div>
+                  <div style={{ fontSize: 12, color: '#BAE8E8' }}>クリックして変更</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>📝</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>クリックして.txtファイルを選択</div>
+                  <div style={{ fontSize: 12, color: '#999' }}>.txt テキストファイル</div>
+                </>
+              )}
+            </div>
+            <input
+              ref={txtRef}
+              type="file"
+              accept=".txt,text/plain"
+              onChange={e => setSelectedTxtName(e.target.files?.[0]?.name ?? '')}
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button
                 onClick={handleTxtLoad}
+                disabled={!selectedTxtName}
                 style={{
-                  background: '#272343', color: '#FFD803', border: 'none',
-                  borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer', whiteSpace: 'nowrap',
+                  background: selectedTxtName ? '#272343' : '#E0E0E0',
+                  color: selectedTxtName ? '#FFD803' : '#999',
+                  border: 'none', borderRadius: 8, padding: '10px 20px',
+                  fontWeight: 700, fontSize: 14,
+                  cursor: selectedTxtName ? 'pointer' : 'default',
                 }}
               >
                 テキストを読み込む
               </button>
+              <span style={{ fontSize: 11, color: '#BAE8E8' }}>クライアント側で読み込み（API不使用）</span>
             </div>
-            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 6 }}>クライアント側で読み込みます（API不使用）</div>
           </div>
         )}
 
@@ -320,27 +360,54 @@ export default function YakujiPage() {
         {/* PDF */}
         {inputMode === 'pdf' && !loadedText && (
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
-              PDFファイルを選択
-            </label>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input ref={pdfRef} type="file" accept=".pdf" style={{ fontSize: 14, color: '#272343' }} />
+            <div
+              onClick={() => { if (!loadingText) pdfRef.current?.click() }}
+              style={{
+                border: `2px dashed ${selectedPdfName ? '#272343' : '#BAE8E8'}`,
+                borderRadius: 10, padding: '28px 20px', textAlign: 'center',
+                cursor: loadingText ? 'default' : 'pointer',
+                background: selectedPdfName ? '#F5FCFC' : '#FAFAFA',
+                transition: 'border-color 0.15s, background 0.15s', marginBottom: 14,
+              }}
+              onMouseEnter={e => { if (!selectedPdfName && !loadingText) e.currentTarget.style.borderColor = '#272343' }}
+              onMouseLeave={e => { if (!selectedPdfName) e.currentTarget.style.borderColor = '#BAE8E8' }}
+            >
+              {selectedPdfName ? (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>📄</div>
+                  <div style={{ fontWeight: 700, color: '#272343', fontSize: 15, marginBottom: 4 }}>{selectedPdfName}</div>
+                  <div style={{ fontSize: 12, color: '#BAE8E8' }}>クリックして変更</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>📄</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>クリックしてPDFを選択</div>
+                  <div style={{ fontSize: 12, color: '#999' }}>.pdf ファイル</div>
+                </>
+              )}
+            </div>
+            <input
+              ref={pdfRef}
+              type="file"
+              accept=".pdf"
+              onChange={e => setSelectedPdfName(e.target.files?.[0]?.name ?? '')}
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button
                 onClick={handlePdfExtractText}
-                disabled={loadingText}
+                disabled={!selectedPdfName || loadingText}
                 style={{
-                  background: loadingText ? '#BAE8E8' : '#272343',
-                  color: loadingText ? '#fff' : '#FFD803',
-                  border: 'none', borderRadius: 8, padding: '8px 16px',
-                  fontWeight: 700, fontSize: 13,
-                  cursor: loadingText ? 'default' : 'pointer', whiteSpace: 'nowrap',
+                  background: !selectedPdfName || loadingText ? '#E0E0E0' : '#272343',
+                  color: !selectedPdfName || loadingText ? '#999' : '#FFD803',
+                  border: 'none', borderRadius: 8, padding: '10px 20px',
+                  fontWeight: 700, fontSize: 14,
+                  cursor: !selectedPdfName || loadingText ? 'default' : 'pointer',
                 }}
               >
                 {loadingText ? 'テキスト抽出中...' : 'テキストを抽出'}
               </button>
-            </div>
-            <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 6, lineHeight: 1.6 }}>
-              pdf-parse でテキストを取り出します（この時点ではClaudeは不使用）
+              <span style={{ fontSize: 11, color: '#BAE8E8' }}>pdf-parse のみ使用（Claudeは不使用）</span>
             </div>
           </div>
         )}
@@ -373,28 +440,57 @@ export default function YakujiPage() {
         {/* JSON */}
         {inputMode === 'json' && !preview && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ background: '#F0FFF4', border: '1px solid #c3e6cb', borderRadius: 8, padding: '12px 16px', marginBottom: 14, fontSize: 13, color: '#2D334A', lineHeight: 1.7 }}>
+            <div style={{ background: '#F0FFF4', border: '1px solid #c3e6cb', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#2D334A', lineHeight: 1.7 }}>
               <strong>AI不使用</strong> — 過去にエクスポートしたJSONや手動作成したルール定義ファイルを直接インポートします。<br />
               形式: <code style={{ background: '#E3F6F5', padding: '1px 6px', borderRadius: 3, fontSize: 12 }}>
                 {'{ "source_name": "...", "rules": [{ "id", "label", "description", "examples_ng" }] }'}
               </code>
             </div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#272343', display: 'block', marginBottom: 6 }}>
-              JSONファイル（.json）を選択
-            </label>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <input ref={jsonRef} type="file" accept=".json,application/json" style={{ fontSize: 14, color: '#272343' }} />
-              <button
-                onClick={handleJsonLoad}
-                style={{
-                  background: '#272343', color: '#FFD803', border: 'none',
-                  borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13,
-                  cursor: 'pointer', whiteSpace: 'nowrap',
-                }}
-              >
-                JSONを読み込む
-              </button>
+            <div
+              onClick={() => jsonRef.current?.click()}
+              style={{
+                border: `2px dashed ${selectedJsonName ? '#272343' : '#BAE8E8'}`,
+                borderRadius: 10, padding: '28px 20px', textAlign: 'center',
+                cursor: 'pointer', background: selectedJsonName ? '#F5FCFC' : '#FAFAFA',
+                transition: 'border-color 0.15s, background 0.15s', marginBottom: 14,
+              }}
+              onMouseEnter={e => { if (!selectedJsonName) e.currentTarget.style.borderColor = '#272343' }}
+              onMouseLeave={e => { if (!selectedJsonName) e.currentTarget.style.borderColor = '#BAE8E8' }}
+            >
+              {selectedJsonName ? (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+                  <div style={{ fontWeight: 700, color: '#272343', fontSize: 15, marginBottom: 4 }}>{selectedJsonName}</div>
+                  <div style={{ fontSize: 12, color: '#BAE8E8' }}>クリックして変更</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#272343', marginBottom: 4 }}>クリックしてJSONを選択</div>
+                  <div style={{ fontSize: 12, color: '#999' }}>.json ファイル</div>
+                </>
+              )}
             </div>
+            <input
+              ref={jsonRef}
+              type="file"
+              accept=".json,application/json"
+              onChange={e => setSelectedJsonName(e.target.files?.[0]?.name ?? '')}
+              style={{ display: 'none' }}
+            />
+            <button
+              onClick={handleJsonLoad}
+              disabled={!selectedJsonName}
+              style={{
+                background: selectedJsonName ? '#272343' : '#E0E0E0',
+                color: selectedJsonName ? '#FFD803' : '#999',
+                border: 'none', borderRadius: 8, padding: '10px 20px',
+                fontWeight: 700, fontSize: 14,
+                cursor: selectedJsonName ? 'pointer' : 'default',
+              }}
+            >
+              JSONを読み込む
+            </button>
           </div>
         )}
 
