@@ -141,7 +141,7 @@ export default function SourcesPage() {
           fontWeight: 400, fontSize: 13, textDecoration: 'none',
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}>
-          薬機法 →
+          薬機法
         </Link>
         <button onClick={() => setFilter('sampleVideo')} style={{
           padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
