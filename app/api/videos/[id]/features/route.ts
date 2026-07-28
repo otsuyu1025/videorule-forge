@@ -123,7 +123,11 @@ export async function POST(
         await db.write()
       }
 
-      const transcriptionDisabled = !!(db.data.settings as Record<string, unknown> | undefined)?.transcriptionDisabled
+      // DB に明示的に設定されている場合のみ使用し、未設定なら undefined（env var にフォールバック）
+      const settingsData = db.data.settings as Record<string, unknown> | undefined
+      const transcriptionDisabled = settingsData && 'transcriptionDisabled' in settingsData
+        ? !!settingsData.transcriptionDisabled
+        : undefined
 
       const extracted = await analyzeVideo(source, id, async (status) => {
         video.status = status
