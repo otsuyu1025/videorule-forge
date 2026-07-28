@@ -28,7 +28,13 @@ let _transcriber: Transcriber | null = null
 let _transcriberUnavailable = false
 
 async function getTranscriber(disabled?: boolean): Promise<Transcriber | null> {
-  if (disabled ?? TRANSCRIPTION_DISABLED_ENV) {
+  // DISABLE_TRANSCRIPTION=true は設定画面の値より優先（低メモリ環境での保護）
+  if (TRANSCRIPTION_DISABLED_ENV) {
+    console.log('[Whisper] DISABLE_TRANSCRIPTION=true のためスキップします')
+    return null
+  }
+  // DB 未設定（undefined）の場合もデフォルトで無効
+  if (disabled !== false) {
     console.log('[Whisper] 音声文字起こしが無効のためスキップします')
     return null
   }
