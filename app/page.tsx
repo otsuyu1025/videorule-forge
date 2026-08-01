@@ -167,7 +167,7 @@ export default function Dashboard() {
             📋 知識ソースを登録して、ルールを育てる
           </div>
           <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14 }}>
-            ガイドラインやお手本動画を登録すると、AIがルール候補を提案します。
+            ガイドライン等を登録すると、AIが動画検品のルール候補を提案します。
           </div>
         </div>
         <Link href="/production-rules/sources/new" style={{
