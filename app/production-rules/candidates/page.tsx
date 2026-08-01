@@ -178,6 +178,8 @@ function CandidateCard({
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState<RuleCandidate[]>([])
   const [loading, setLoading] = useState(true)
+  const [rejectAllConfirm, setRejectAllConfirm] = useState(false)
+  const [rejectingAll, setRejectingAll] = useState(false)
 
   const fetchCandidates = () => {
     setLoading(true)
@@ -206,22 +208,102 @@ export default function CandidatesPage() {
     fetchCandidates()
   }
 
+  const handleRejectAll = async () => {
+    setRejectingAll(true)
+    await Promise.all(candidates.map(c =>
+      fetch(`/api/rule-candidates/${c.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approvalStatus: 'rejected' }),
+      })
+    ))
+    setRejectingAll(false)
+    setRejectAllConfirm(false)
+    fetchCandidates()
+  }
+
   return (
     <div style={{ padding: 48, maxWidth: 860, margin: '0 auto' }}>
+      {/* 一括却下 確認ダイアログ */}
+      {rejectAllConfirm && (
+        <div
+          onClick={() => { if (!rejectingAll) setRejectAllConfirm(false) }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: 16, padding: '32px 36px',
+              maxWidth: 420, width: '90%', boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+            }}
+          >
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#272343', marginBottom: 12 }}>
+              すべて却下しますか？
+            </div>
+            <p style={{ fontSize: 14, color: '#2D334A', lineHeight: 1.7, marginBottom: 28 }}>
+              承認待ちのルール候補 <strong>{candidates.length} 件</strong> をすべて却下します。<br />
+              この操作は取り消せません。
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={handleRejectAll}
+                disabled={rejectingAll}
+                style={{
+                  background: rejectingAll ? '#ccc' : '#e74c3c',
+                  color: '#fff', border: 'none', borderRadius: 8,
+                  padding: '11px 24px', fontWeight: 700, fontSize: 14,
+                  cursor: rejectingAll ? 'default' : 'pointer',
+                }}
+              >
+                {rejectingAll ? '処理中...' : 'すべて却下する'}
+              </button>
+              <button
+                onClick={() => setRejectAllConfirm(false)}
+                disabled={rejectingAll}
+                style={{
+                  background: '#fff', color: '#2D334A', border: '1px solid #E3F6F5',
+                  borderRadius: 8, padding: '11px 20px', fontSize: 14, cursor: 'pointer',
+                }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: 4 }}>
         <Link href="/production-rules" style={{ color: '#2D334A', fontSize: 13, textDecoration: 'none', opacity: 0.6 }}>
           ← 動画制作ルール
         </Link>
       </div>
-      <div style={{ marginBottom: 36, marginTop: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#BAE8E8', letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase' }}>
-          Rule Candidates
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, marginTop: 20 }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#BAE8E8', letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase' }}>
+            Rule Candidates
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>ルール候補</h1>
+          <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
+            AIが知識ソースを解析して提案したルール候補です。<br />
+            承認するとルール管理に表示され、動画制作ルールとして使うことができます。
+          </p>
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>ルール候補</h1>
-        <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
-          AIが知識ソースを解析して提案したルール候補です。<br />
-          承認するとルール管理に表示され、動画制作ルールとして使うことができます。
-        </p>
+        {!loading && candidates.length > 0 && (
+          <button
+            onClick={() => setRejectAllConfirm(true)}
+            style={{
+              background: '#fff', color: '#e74c3c',
+              border: '1px solid #e74c3c', borderRadius: 8,
+              padding: '10px 18px', fontWeight: 600, fontSize: 13,
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
+            すべて却下
+          </button>
+        )}
       </div>
 
       {loading ? (
