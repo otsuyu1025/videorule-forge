@@ -53,6 +53,7 @@ export default function SourcesPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [loading, setLoading] = useState(true)
   const [yakujiEnabled, setYakujiEnabled] = useState(false)
+  const [sampleVideoEnabled, setSampleVideoEnabled] = useState(false)
   const [yakujiSettings, setYakujiSettings] = useState<{
     enabled: boolean; source_name?: string; source_updated_at?: string; imported_at?: string; rules: unknown[]
   } | null>(null)
@@ -70,14 +71,16 @@ export default function SourcesPage() {
     })
 
   const fetchAll = async () => {
-    const [videos, guidelines, candidates, yakuji] = await Promise.all([
+    const [videos, guidelines, candidates, yakuji, features] = await Promise.all([
       fetch('/api/videos?type=sample').then(r => r.json()),
       fetch('/api/guidelines').then(r => r.json()),
       fetch('/api/rule-candidates').then(r => r.json()),
       fetch('/api/admin/yakuji').then(r => r.json()),
+      fetch('/api/features').then(r => r.json()),
     ])
     setYakujiEnabled(yakuji.enabled ?? false)
     setYakujiSettings(yakuji)
+    setSampleVideoEnabled(features.sampleVideoEnabled === true)
     const counts: Record<string, number> = {}
     for (const c of candidates) {
       if (c.guidelineId) counts[c.guidelineId] = (counts[c.guidelineId] || 0) + 1
@@ -152,15 +155,17 @@ export default function SourcesPage() {
             薬機法
           </button>
         )}
-        <button onClick={() => setFilter('sampleVideo')} style={{
-          padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
-          border: filter === 'sampleVideo' ? '2px solid #272343' : '1px solid #BAE8E8',
-          background: filter === 'sampleVideo' ? '#272343' : '#fff',
-          color: filter === 'sampleVideo' ? '#FFD803' : '#2D334A',
-          fontWeight: filter === 'sampleVideo' ? 700 : 400, fontSize: 13,
-        }}>
-          お手本動画
-        </button>
+        {sampleVideoEnabled && (
+          <button onClick={() => setFilter('sampleVideo')} style={{
+            padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
+            border: filter === 'sampleVideo' ? '2px solid #272343' : '1px solid #BAE8E8',
+            background: filter === 'sampleVideo' ? '#272343' : '#fff',
+            color: filter === 'sampleVideo' ? '#FFD803' : '#2D334A',
+            fontWeight: filter === 'sampleVideo' ? 700 : 400, fontSize: 13,
+          }}>
+            お手本動画
+          </button>
+        )}
       </div>
 
       {/* 薬機法フィルター表示 */}

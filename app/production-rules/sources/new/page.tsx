@@ -29,6 +29,7 @@ export default function SourcesNewPage() {
   const router = useRouter()
   const [kind, setKind] = useState<SourceKind>(null)
   const [snsDownloadEnabled, setSnsDownloadEnabled] = useState(false)
+  const [sampleVideoEnabled, setSampleVideoEnabled] = useState(false)
   const [sampleMode, setSampleMode] = useState<SampleMode>('file')
 
   // SNS URL フォーム
@@ -44,6 +45,7 @@ export default function SourcesNewPage() {
       fetch('/api/settings').then(r => r.json()),
     ]).then(([features, settings]) => {
       setSnsDownloadEnabled(features.snsDownload === true)
+      setSampleVideoEnabled(features.sampleVideoEnabled === true)
       setSnsBrowser(settings.snsBrowser ?? '')
     })
   }, [])
@@ -146,7 +148,7 @@ export default function SourcesNewPage() {
 
       {/* 種別選択 */}
       {!kind && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: sampleVideoEnabled ? '1fr 1fr 1fr' : '1fr 1fr', gap: 16 }}>
           <button
             onClick={() => setKind('guideline')}
             style={{
@@ -177,20 +179,22 @@ export default function SourcesNewPage() {
             <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>薬機法の広告規制資料をテキスト・PDFで登録します。AIが判定ルールを自動抽出します。</div>
           </Link>
 
-          <button
-            onClick={() => setKind('sampleVideo')}
-            style={{
-              background: '#fff', border: '2px solid #E3F6F5', borderRadius: 14,
-              padding: '28px 24px', cursor: 'pointer', textAlign: 'left',
-              transition: 'border-color 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#272343' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E3F6F5' }}
-          >
-            <div style={{ fontSize: 32, marginBottom: 14 }}>🎬</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 8 }}>お手本動画を登録</div>
-            <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>AIが動画を解析してルール候補を生成します。</div>
-          </button>
+          {sampleVideoEnabled && (
+            <button
+              onClick={() => setKind('sampleVideo')}
+              style={{
+                background: '#fff', border: '2px solid #E3F6F5', borderRadius: 14,
+                padding: '28px 24px', cursor: 'pointer', textAlign: 'left',
+                transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#272343' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#E3F6F5' }}
+            >
+              <div style={{ fontSize: 32, marginBottom: 14 }}>🎬</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 8 }}>お手本動画を登録</div>
+              <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>AIが動画を解析してルール候補を生成します。</div>
+            </button>
+          )}
         </div>
       )}
 

@@ -28,6 +28,8 @@ export default function SettingsPage() {
   const [yakujiSaved, setYakujiSaved] = useState(false)
   const [transcriptionDisabled, setTranscriptionDisabled] = useState(false)
   const [transcriptionSaved, setTranscriptionSaved] = useState(false)
+  const [sampleVideoEnabled, setSampleVideoEnabled] = useState(false)
+  const [sampleVideoSaved, setSampleVideoSaved] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -40,6 +42,7 @@ export default function SettingsPage() {
       setVisionFrameInterval(features.visionFrameInterval ?? 3)
       setSnsEnabled(features.snsDownload === true)
       setTranscriptionDisabled(features.transcriptionDisabled === true)
+      setSampleVideoEnabled(features.sampleVideoEnabled === true)
       setYakujiEnabled(yakuji.enabled ?? false)
       setLoading(false)
     })
@@ -76,6 +79,17 @@ export default function SettingsPage() {
       setVisionIntervalSaved(true)
       setTimeout(() => setVisionIntervalSaved(false), 2000)
     })
+  }
+
+  const toggleSampleVideo = async (next: boolean) => {
+    setSampleVideoEnabled(next)
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sampleVideoEnabled: next }),
+    })
+    setSampleVideoSaved(true)
+    setTimeout(() => setSampleVideoSaved(false), 2000)
   }
 
   const toggleTranscription = async (nextDisabled: boolean) => {
@@ -222,6 +236,42 @@ export default function SettingsPage() {
               ※ Cloudflare R2 が設定されていない場合は、自動削除対象外です。
             </div>
           </>
+        )}
+      </section>
+
+      {/* お手本動画 */}
+      <section style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 12, padding: 28, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#272343', marginTop: 0, marginBottom: 6 }}>
+          お手本動画
+        </h2>
+        <p style={{ fontSize: 14, color: '#2D334A', marginBottom: 20, lineHeight: 1.7 }}>
+          「良い動画のサンプル」を登録してAIにルールを学習させる機能です。<br />
+          OFFにすると、知識ソースの追加画面からお手本動画の登録が非表示になります。
+        </p>
+        {loading ? (
+          <div style={{ color: '#999', fontSize: 14 }}>読み込み中...</div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <button
+              onClick={() => toggleSampleVideo(!sampleVideoEnabled)}
+              style={{
+                width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+                background: sampleVideoEnabled ? '#272343' : '#BAE8E8',
+                position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 3, left: sampleVideoEnabled ? 27 : 3,
+                width: 22, height: 22, borderRadius: '50%',
+                background: sampleVideoEnabled ? '#FFD803' : '#fff',
+                transition: 'left 0.2s', display: 'block',
+              }} />
+            </button>
+            <span style={{ fontSize: 14, color: '#272343' }}>
+              {sampleVideoEnabled ? '有効 — お手本動画の登録・管理ができます' : '無効 — 知識ソース追加画面に表示されません'}
+            </span>
+            {sampleVideoSaved && <span style={{ fontSize: 13, color: '#27ae60', fontWeight: 600 }}>✓ 保存しました</span>}
+          </div>
         )}
       </section>
 

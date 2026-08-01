@@ -11,9 +11,14 @@ export async function GET() {
   const transcriptionDisabled: boolean = settings.transcriptionDisabled as boolean
     ?? process.env.DISABLE_TRANSCRIPTION === 'true'
 
+  const sampleVideoEnabled: boolean = 'sampleVideoEnabled' in settings
+    ? !!settings.sampleVideoEnabled
+    : process.env.ENABLE_SAMPLE_VIDEO === 'true'
+
   return NextResponse.json({
     snsDownload: process.env.ENABLE_SNS_DOWNLOAD === 'true',
     transcriptionDisabled,
+    sampleVideoEnabled,
     frameIntervalSeconds: parseInt(process.env.VIDEO_FRAME_INTERVAL || '1'),
     visionFrameInterval,
   })
