@@ -317,7 +317,7 @@ export default function CandidatesPage() {
           <div style={{ fontSize: 14, color: '#2D334A', opacity: 0.8, lineHeight: 1.8 }}>
             知識ソースを登録・解析するとルール候補が生成されます。
             <br />
-            <Link href="/production-rules/sources" style={{ color: '#272343', fontWeight: 700 }}>
+            <Link href="/production-rules/sources/new" style={{ color: '#272343', fontWeight: 700 }}>
               知識ソースを追加 →
             </Link>
           </div>
