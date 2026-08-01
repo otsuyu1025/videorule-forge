@@ -47,4 +47,6 @@ RUN mkdir -p data/uploads data/frames data/logs data/tessdata
 
 EXPOSE ${PORT:-3000}
 
-CMD ["npm", "start"]
+# exec でシェルを next プロセスに置き換え、SIGTERM を直接受け取らせる
+# （npm ラッパー経由だと非ゼロ終了→Railway が誤ってクラッシュ判定する）
+CMD ["/bin/sh", "-c", "exec node_modules/.bin/next start -p ${PORT:-3000}"]
