@@ -120,7 +120,7 @@ export default function SourcesPage() {
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>知識ソース</h1>
           <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
             動画制作ルールを育てるための材料です。<br />
-            ガイドラインとお手本動画を登録します。
+            ガイドラインなどを登録します。
           </p>
         </div>
         <Link href="/production-rules/sources/new" style={{
@@ -168,9 +168,9 @@ export default function SourcesPage() {
         )}
       </div>
 
-      {/* 薬機法フィルター表示 */}
-      {!loading && filter === 'yakuji' && (
-        <div>
+      {/* 薬機法表示（'all' または 'yakuji' フィルター時） */}
+      {!loading && yakujiEnabled && (filter === 'all' || filter === 'yakuji') && (
+        <div style={{ marginBottom: filter === 'all' ? 12 : 0 }}>
           {yakujiSettings && (yakujiSettings.rules?.length ?? 0) > 0 ? (
             <div style={{
               background: '#f0faf5', border: '1px solid #27ae60',
@@ -203,7 +203,7 @@ export default function SourcesPage() {
                 編集する
               </Link>
             </div>
-          ) : (
+          ) : filter === 'yakuji' ? (
             <div style={{ background: '#E3F6F5', borderRadius: 14, padding: 48, textAlign: 'center' }}>
               <div style={{ fontSize: 36, marginBottom: 14 }}>⚖️</div>
               <div style={{ fontWeight: 700, fontSize: 17, color: '#272343', marginBottom: 8 }}>
@@ -221,7 +221,7 @@ export default function SourcesPage() {
                 薬機法をアップロードする
               </Link>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
