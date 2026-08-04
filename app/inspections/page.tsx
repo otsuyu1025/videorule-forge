@@ -150,7 +150,7 @@ function StepIndicator({ current, step, label }: { current: Step; step: Step; la
 }
 
 export default function InspectionsPage() {
-  const [inputMode, setInputMode] = useState<InputMode>('url')
+  const [inputMode, setInputMode] = useState<InputMode>('file')
   const [form, setForm] = useState({ title: '', url: '' })
   const [file, setFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -529,7 +529,7 @@ export default function InspectionsPage() {
 
       <div style={{ background: '#fff', border: '1px solid #E3F6F5', borderRadius: 16, padding: '32px 36px', marginBottom: 32 }}>
         <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #E3F6F5' }}>
-          {(['url', 'file'] as InputMode[]).map(m => (
+          {(['file', 'url'] as InputMode[]).map(m => (
             <button
               key={m}
               type="button"
