@@ -245,7 +245,7 @@ export default function SettingsPage() {
           <p style={sectionDesc}>
             AIが動画内のテキスト（テロップ・字幕）を読み取る際に、何秒ごとに1枚のフレームを解析するかを設定します。<br />
             間隔を長くすると処理が速くなりますが、短い時間だけ表示されるテロップを見逃す可能性があります。<br />
-            <span style={{ fontSize: 12, color: '#999' }}>※ 最大10枚まで。サーバーのメモリ制限（512MB）への対応として設定しています。</span>
+            <span style={{ fontSize: 12, color: '#999' }}>※ Vision OCR の解析枚数上限は環境変数 VIDEO_VISION_MAX_FRAMES で設定されます（デフォルト15枚）。</span>
           </p>
           {loading ? (
             <div style={{ color: '#999', fontSize: 14 }}>読み込み中...</div>
@@ -271,7 +271,7 @@ export default function SettingsPage() {
               </div>
               {visionIntervalSaved && <div style={{ ...saved, marginTop: 12 }}>✓ 保存しました</div>}
               <div style={{ marginTop: 14, fontSize: 12, color: '#999', lineHeight: 1.7 }}>
-                現在の設定: <strong style={{ color: '#272343' }}>{visionFrameInterval}秒ごとに1枚</strong>（最大20枚・超過分はバッチ処理）<br />
+                現在の設定: <strong style={{ color: '#272343' }}>{visionFrameInterval}秒ごとに1枚</strong>（上限枚数は環境変数 VIDEO_VISION_MAX_FRAMES で設定）<br />
                 目安: 30秒の動画 → {Math.min(30, Math.ceil(30 / visionFrameInterval))}枚のフレームを解析
               </div>
             </>

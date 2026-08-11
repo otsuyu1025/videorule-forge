@@ -8,8 +8,10 @@ const MODEL = 'claude-haiku-4-5-20251001'
 const PRICE_INPUT_PER_M  = 1.00  // $1.00 / 1Mトークン
 const PRICE_OUTPUT_PER_M = 5.00  // $5.00 / 1Mトークン
 
-// inspectVideo/generateRuleCandidates で使うフレーム上限（大きいテキストプロンプトと共存するため抑制）
-const MAX_VISION_FRAMES = 15
+// inspectVideo/generateRuleCandidates で使うフレーム上限
+// VIDEO_VISION_MAX_FRAMES 環境変数で上書き可能（Railway などで調整）
+// デフォルト 15 枚 × visionInterval秒 = カバー可能秒数（例: 15×2s=30s）
+const MAX_VISION_FRAMES = parseInt(process.env.VIDEO_VISION_MAX_FRAMES || '15')
 // Anthropic の1リクエストあたりの画像上限
 const VISION_BATCH_SIZE = 20
 
