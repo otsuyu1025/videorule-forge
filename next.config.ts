@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
     'tesseract.js',
     'sharp',
   ],
+  experimental: {
+    // proxy.ts（認証ミドルウェア）がリクエストボディをバッファリングする際の上限
+    // デフォルト 10MB では動画アップロードが失敗するため MAX_VIDEO_SIZE_MB に合わせて拡張
+    proxyClientMaxBodySize: '200mb',
+  },
 }
 
 export default nextConfig
