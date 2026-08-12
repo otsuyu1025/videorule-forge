@@ -463,9 +463,9 @@ export default function InspectionsPage() {
       (yakujiResults.length === 1 && yakujiResults[0].ruleId === 'yakuji_overall' && yakujiResults[0].judgment === 'OK')
     const yakujiNgCount = yakujiResults.filter(r => r.judgment === 'NG').length
 
-    // サマリー用テキスト：actionItem 優先、なければ reason。末尾の「してください」を除去
+    // サマリー用テキスト：actionItem 優先、なければ reason。末尾の「してください」「。」を除去して統一
     const toSummaryText = (r: InspectionResult) =>
-      (r.actionItem || r.reason).replace(/してください[。]?$/u, '').trimEnd()
+      (r.actionItem || r.reason).replace(/してください[。]?$/u, '').replace(/。$/u, '').trimEnd()
 
     // カテゴリ別にグループ化して箇条書きサマリーを生成
     const groupByCategory = (results: InspectionResult[]) => {
@@ -515,11 +515,11 @@ export default function InspectionsPage() {
                   {sortEntries(Object.entries(ngGroups)).map(([cat, reasons]) => (
                     <div key={cat}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#5a5a5a', marginBottom: 2 }}>{cat}</div>
-                      <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {reasons.map((reason, i) => (
-                          <li key={i} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>{reason}</li>
+                          <div key={i} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>・{reason}</div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -532,11 +532,11 @@ export default function InspectionsPage() {
                   {sortEntries(Object.entries(reviewGroups)).map(([cat, reasons]) => (
                     <div key={cat}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#5a5a5a', marginBottom: 2 }}>{cat}</div>
-                      <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {reasons.map((reason, i) => (
-                          <li key={i} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>{reason}</li>
+                          <div key={i} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>・{reason}</div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   ))}
                 </div>
