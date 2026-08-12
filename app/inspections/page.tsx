@@ -427,12 +427,6 @@ export default function InspectionsPage() {
       }
       return groups
     }
-    // 複数の理由を自然な日本語文章に要約する
-    const summarizeReasons = (reasons: string[]): string => {
-      if (reasons.length === 1) return reasons[0]
-      if (reasons.length === 2) return `${reasons[0]}。また、${reasons[1]}。`
-      return `${reasons[0]}のほか、計${reasons.length}件の問題が確認されました。`
-    }
     // 「その他」を末尾に並べるソート
     const sortEntries = (entries: [string, string[]][]) =>
       entries.sort(([a], [b]) => {
@@ -457,27 +451,35 @@ export default function InspectionsPage() {
             {Object.keys(ngGroups).length > 0 && (
               <div style={{ marginBottom: reviewItems.length > 0 ? 14 : 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#721c24', marginBottom: 8 }}>🔴 要修正</div>
-                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {sortEntries(Object.entries(ngGroups)).map(([cat, reasons]) => (
-                    <li key={cat} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>
-                      <span style={{ fontWeight: 600 }}>{cat}：</span>
-                      {summarizeReasons(reasons)}
-                    </li>
+                    <div key={cat}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#5a5a5a', marginBottom: 2 }}>{cat}</div>
+                      <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {reasons.map((reason, i) => (
+                          <li key={i} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
             {Object.keys(reviewGroups).length > 0 && (
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#856404', marginBottom: 8 }}>🟡 要確認</div>
-                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {sortEntries(Object.entries(reviewGroups)).map(([cat, reasons]) => (
-                    <li key={cat} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>
-                      <span style={{ fontWeight: 600 }}>{cat}：</span>
-                      {summarizeReasons(reasons)}
-                    </li>
+                    <div key={cat}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#5a5a5a', marginBottom: 2 }}>{cat}</div>
+                      <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {reasons.map((reason, i) => (
+                          <li key={i} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
           </div>
