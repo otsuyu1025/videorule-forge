@@ -405,19 +405,50 @@ export default function InspectionsPage() {
     setHistory(prev => prev.filter(h => h.inspection.id !== inspectionId))
   }
 
-  const handleReset = async (e: { stopPropagation(): void }, inspectionId: string) => {
+  const handleAbort = async (e: { stopPropagation(): void }, inspectionId: string) => {
     e.stopPropagation()
-    if (!confirm('この検品をエラー状態にリセットして再検品できるようにしますか？')) return
+    if (!confirm('この検品を中止してエラー状態にしますか？')) return
     const res = await fetch(`/api/inspections/${inspectionId}/reset`, { method: 'POST' })
-    if (!res.ok) {
-      alert('リセットに失敗しました')
-      return
-    }
+    if (!res.ok) { alert('中止に失敗しました'); return }
     setHistory(prev => prev.map(h =>
       h.inspection.id === inspectionId
         ? { ...h, inspection: { ...h.inspection, status: 'error' } }
         : h
     ))
+  }
+
+  const handleReInspect = async (
+    e: { stopPropagation(): void },
+    inspection: VideoInspection,
+    videoTitle: string,
+  ) => {
+    e.stopPropagation()
+    if (!confirm('この検品を再実行しますか？（1〜3分かかります）')) return
+
+    // 古い stuck 検品を削除してカードを消す
+    await fetch(`/api/inspections/${inspection.id}`, { method: 'DELETE' })
+    setHistory(prev => prev.filter(h => h.inspection.id !== inspection.id))
+
+    // 1.5秒後に履歴を更新して新しい「検品中」カードを早めに表示
+    const earlyRefresh = setTimeout(fetchHistory, 1500)
+
+    try {
+      const res = await fetch('/api/inspections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: inspection.videoId }),
+      })
+      clearTimeout(earlyRefresh)
+      if (res.ok) {
+        const data = await res.json() as { inspection: VideoInspection }
+        setHistory(prev => [{ inspection: data.inspection, videoTitle }, ...prev])
+        return
+      }
+    } catch {
+      clearTimeout(earlyRefresh)
+      // タイムアウト・ネットワークエラー → fetchHistory で新しい running カードを表示
+    }
+    fetchHistory()
   }
 
   const handleDeleteVideo = async (e: React.MouseEvent, videoId: string) => {
@@ -463,9 +494,9 @@ export default function InspectionsPage() {
       (yakujiResults.length === 1 && yakujiResults[0].ruleId === 'yakuji_overall' && yakujiResults[0].judgment === 'OK')
     const yakujiNgCount = yakujiResults.filter(r => r.judgment === 'NG').length
 
-    // サマリー用テキスト：actionItem 優先、なければ reason。末尾の「してください」「。」を除去して統一
+    // サマリー用テキスト：actionItem 優先、なければ reason。「してください」「。」を全箇所除去して統一
     const toSummaryText = (r: InspectionResult) =>
-      (r.actionItem || r.reason).replace(/してください[。]?$/u, '').replace(/。$/u, '').trimEnd()
+      (r.actionItem || r.reason).replace(/してください[。]?/gu, '').replace(/。$/u, '').trimEnd()
 
     // カテゴリ別にグループ化して箇条書きサマリーを生成
     const groupByCategory = (results: InspectionResult[]) => {
@@ -904,17 +935,30 @@ export default function InspectionsPage() {
                         })()}
                       </div>
                       {isRunning && (
-                        <button
-                          onClick={e => handleReset(e, inspection.id)}
-                          title="エラー状態にリセットして再検品できるようにする"
-                          style={{
-                            background: '#272343', border: 'none', borderRadius: 6,
-                            cursor: 'pointer', padding: '5px 10px', color: '#FFD803', fontSize: 12,
-                            fontWeight: 700, lineHeight: 1, flexShrink: 0,
-                          }}
-                        >
-                          🔄 再検品
-                        </button>
+                        <>
+                          <button
+                            onClick={e => handleReInspect(e, inspection, videoTitle)}
+                            title="古い検品を削除して同じ動画で再検品する"
+                            style={{
+                              background: '#272343', border: 'none', borderRadius: 6,
+                              cursor: 'pointer', padding: '5px 10px', color: '#FFD803', fontSize: 12,
+                              fontWeight: 700, lineHeight: 1, flexShrink: 0,
+                            }}
+                          >
+                            🔄 再検品
+                          </button>
+                          <button
+                            onClick={e => handleAbort(e, inspection.id)}
+                            title="検品を中止してエラー状態にする"
+                            style={{
+                              background: 'none', border: '1px solid #FFD803', borderRadius: 6,
+                              cursor: 'pointer', padding: '5px 10px', color: '#856404', fontSize: 12,
+                              fontWeight: 700, lineHeight: 1, flexShrink: 0,
+                            }}
+                          >
+                            ⏹ 検品中止
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={e => handleDelete(e, inspection.id, isRunning)}
