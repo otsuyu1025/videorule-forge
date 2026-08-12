@@ -223,6 +223,13 @@ export default function YakujiPage() {
         <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
           薬機法が改正されたら、このページから最新情報を登録してください。
         </p>
+        <div style={{
+          marginTop: 14, padding: '10px 14px',
+          background: '#FFFBF0', border: '1px solid #FFE082',
+          borderRadius: 8, fontSize: 11, color: '#795548', lineHeight: 1.8,
+        }}>
+          ⚠️ 本サービスは広告表現に関する予備的なチェックを行うものであり、薬機法その他の法令への適合性を保証するものではありません。最終的な判断は、必要に応じて薬事・法務の専門家へご確認ください。
+        </div>
         <div style={{ marginTop: 10, fontSize: 13, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span>
             <span style={{ display: 'inline-block', background: '#d4edda', color: '#155724', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, marginRight: 6, verticalAlign: 'middle' }}>必須</span>
