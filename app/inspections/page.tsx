@@ -35,6 +35,26 @@ function buildTelopTimeline(frames: FrameData[], frameInterval: number): string 
   }).join('\n')
 }
 
+function DetailSection({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ marginTop: 20 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: 13, fontWeight: 700, color: '#272343', padding: 0, marginBottom: open ? 14 : 0,
+        }}
+      >
+        <span style={{ fontSize: 11, color: '#BAE8E8' }}>{open ? '▲' : '▼'}</span>
+        検品結果の詳細
+      </button>
+      {open && <div>{children}</div>}
+    </div>
+  )
+}
+
 function OcrPanel({ frames, frameInterval }: { frames: FrameData[]; frameInterval: number }) {
   const [open, setOpen] = useState(false)
 
@@ -449,9 +469,10 @@ export default function InspectionsPage() {
 
     return (
       <div>
-        {/* サマリー */}
+        {/* 検品結果の要約 */}
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#272343', marginBottom: 10 }}>検品結果の要約</div>
         {hasSummary && (
-          <div style={{ background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 10, padding: '18px 20px', marginBottom: 20 }}>
+          <div style={{ background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 10, padding: '18px 20px', marginBottom: 0 }}>
             {Object.keys(ngGroups).length > 0 && (
               <div style={{ marginBottom: reviewItems.length > 0 ? 14 : 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#721c24', marginBottom: 8 }}>🔴 要修正</div>
@@ -489,6 +510,7 @@ export default function InspectionsPage() {
           </div>
         )}
 
+        <DetailSection>
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
           <span style={{ fontSize: 13, background: '#d4edda', color: '#155724', padding: '4px 12px', borderRadius: 20, fontWeight: 700 }}>OK {okCount}</span>
           {ngCount > 0 && <span style={{ fontSize: 13, background: '#f8d7da', color: '#721c24', padding: '4px 12px', borderRadius: 20, fontWeight: 700 }}>NG {ngCount}</span>}
@@ -574,6 +596,7 @@ export default function InspectionsPage() {
             )}
           </div>
         )}
+        </DetailSection>
       </div>
     )
   }
