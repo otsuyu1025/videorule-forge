@@ -135,15 +135,15 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* ── 知識ソース ── */}
+      {/* ── ガイドライン ── */}
       <div style={{ marginBottom: 40 }}>
-        <p style={categoryLabel}>知識ソース</p>
+        <p style={categoryLabel}>ガイドライン</p>
 
         <section style={section}>
           <h2 style={sectionTitle}>お手本動画からのルール登録</h2>
           <p style={sectionDesc}>
             「良い動画のサンプル」を登録してAIにルールを学習させる機能です。<br />
-            OFFにすると、知識ソースの追加画面からお手本動画の登録が非表示になります。
+            OFFにすると、ガイドラインの追加画面からお手本動画の登録が非表示になります。
           </p>
           {loading ? (
             <div style={{ color: '#999', fontSize: 14 }}>読み込み中...</div>
@@ -151,7 +151,7 @@ export default function SettingsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <Toggle active={sampleVideoEnabled} onToggle={() => toggleSampleVideo(!sampleVideoEnabled)} />
               <span style={{ fontSize: 14, color: '#272343' }}>
-                {sampleVideoEnabled ? '有効 — お手本動画の登録・管理ができます' : '無効 — 知識ソース追加画面に表示されません'}
+                {sampleVideoEnabled ? '有効 — お手本動画の登録・管理ができます' : '無効 — ガイドライン追加画面に表示されません'}
               </span>
               {sampleVideoSaved && <span style={saved}>✓ 保存しました</span>}
             </div>

@@ -117,7 +117,7 @@ export default function SourcesPage() {
           <div style={{ fontSize: 12, fontWeight: 700, color: '#BAE8E8', letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase' }}>
             Knowledge Sources
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>知識ソース</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>ガイドライン登録</h1>
           <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
             検品ルールを育てるための材料です。<br />
             ガイドラインなどを登録します。
@@ -128,7 +128,7 @@ export default function SourcesPage() {
           borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14,
           cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap',
         }}>
-          + 知識ソースを追加
+          + ガイドラインを追加
         </Link>
       </div>
 
@@ -231,7 +231,7 @@ export default function SourcesPage() {
         <div style={{ background: '#E3F6F5', borderRadius: 14, padding: 48, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 14 }}>🗂️</div>
           <div style={{ fontWeight: 700, fontSize: 17, color: '#272343', marginBottom: 8 }}>
-            知識ソースがまだありません
+            ガイドラインがまだありません
           </div>
           <div style={{ fontSize: 14, color: '#2D334A', lineHeight: 1.8, marginBottom: 20, opacity: 0.8 }}>
             ガイドラインなどを登録してください。<br />
@@ -242,7 +242,7 @@ export default function SourcesPage() {
             borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14,
             display: 'inline-block',
           }}>
-            最初の知識ソースを追加する
+            最初のガイドラインを追加する
           </Link>
         </div>
       ) : filter !== 'yakuji' ? (

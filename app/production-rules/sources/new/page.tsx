@@ -131,7 +131,7 @@ export default function SourcesNewPage() {
     <div style={{ padding: 48, maxWidth: kind ? 680 : 900, margin: '0 auto' }}>
       <div style={{ marginBottom: 4 }}>
         <Link href="/production-rules/sources" style={{ color: '#2D334A', fontSize: 13, textDecoration: 'none', opacity: 0.6 }}>
-          ← 知識ソース一覧
+          ← ガイドライン登録
         </Link>
       </div>
       <div style={{ marginBottom: 36, marginTop: 20 }}>
@@ -139,7 +139,7 @@ export default function SourcesNewPage() {
           Add Knowledge Source
         </div>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: '#272343', margin: 0 }}>
-          知識ソースを追加
+          ガイドラインを追加
         </h1>
         <p style={{ color: '#2D334A', marginTop: 10, fontSize: 14, lineHeight: 1.7, opacity: 0.75 }}>
           何から検品ルールを育てますか？

@@ -25,7 +25,7 @@ export default function GuidelineNewPage() {
     <div style={{ padding: 48, maxWidth: 760, margin: '0 auto' }}>
       <div style={{ marginBottom: 32 }}>
         <Link href="/production-rules/sources" style={{ color: '#2D334A', fontSize: 13, textDecoration: 'none', opacity: 0.6 }}>
-          ← 知識ソースへ戻る
+          ← ガイドラインへ戻る
         </Link>
       </div>
 

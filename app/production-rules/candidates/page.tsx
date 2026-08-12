@@ -287,7 +287,7 @@ export default function CandidatesPage() {
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>ルール候補</h1>
           <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
-            AIが知識ソースを解析して提案したルール候補です。<br />
+            AIがガイドラインを解析して提案したルール候補です。<br />
             承認すると検品ルール一覧に表示され、検品ルールとして使うことができます。
           </p>
         </div>
@@ -315,10 +315,10 @@ export default function CandidatesPage() {
             承認待ちのルール候補はありません
           </div>
           <div style={{ fontSize: 14, color: '#2D334A', opacity: 0.8, lineHeight: 1.8 }}>
-            知識ソースを登録・解析するとルール候補が生成されます。
+            ガイドラインを登録・解析するとルール候補が生成されます。
             <br />
             <Link href="/production-rules/sources/new" style={{ color: '#272343', fontWeight: 700 }}>
-              知識ソースを追加 →
+              ガイドラインを追加 →
             </Link>
           </div>
         </div>

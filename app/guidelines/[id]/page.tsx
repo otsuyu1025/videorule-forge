@@ -107,7 +107,7 @@ export default function GuidelineDetailPage() {
 
   if (!guideline) return (
     <div style={{ padding: 48 }}>
-      <Link href="/production-rules/sources" style={{ color: '#272343', fontSize: 13, textDecoration: 'none' }}>← 知識ソースへ戻る</Link>
+      <Link href="/production-rules/sources" style={{ color: '#272343', fontSize: 13, textDecoration: 'none' }}>← ガイドラインへ戻る</Link>
       <div style={{ marginTop: 32, color: '#2D334A' }}>ガイドラインが見つかりません。</div>
     </div>
   )
@@ -119,7 +119,7 @@ export default function GuidelineDetailPage() {
     <div style={{ padding: 48, maxWidth: 760, margin: '0 auto' }}>
       <div style={{ marginBottom: 32 }}>
         <Link href="/production-rules/sources" style={{ color: '#2D334A', fontSize: 13, textDecoration: 'none', opacity: 0.6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          ← 知識ソースへ戻る
+          ← ガイドラインへ戻る
         </Link>
       </div>
 

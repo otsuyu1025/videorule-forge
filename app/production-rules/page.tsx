@@ -171,6 +171,12 @@ export default function RulesPage() {
         >
           {showAddForm ? '✕ キャンセル' : '+ 手動で追加'}
         </button>
+        <Link
+          href="/production-rules/sources"
+          style={{ background: '#272343', color: '#FFD803', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
+          + ガイドラインなどから追加
+        </Link>
       </div>
 
       {/* 手動追加フォーム */}
@@ -312,7 +318,7 @@ export default function RulesPage() {
           </div>
           {!search && (
             <div style={{ fontSize: 14, color: '#2D334A', opacity: 0.8, lineHeight: 1.8 }}>
-              知識ソースを登録してルール候補を承認すると、ここに追加されます。
+              ガイドラインを登録してルール候補を承認すると、ここに追加されます。
               <br />
               <Link href="/production-rules/candidates" style={{ color: '#272343', fontWeight: 700 }}>
                 ルール候補を確認 →
