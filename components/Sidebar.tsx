@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 
 const navItems = [
-  { href: '/', label: 'ダッシュボード', icon: '🏠' },
+  { href: '/', label: 'ホーム', icon: '🏠' },
   { href: '/production-rules', label: '動画制作ルール', icon: '📋', isSection: true },
   { href: '/inspections', label: '動画検品', icon: '🔍' },
   { href: '/settings', label: '設定', icon: '⚙️' },
@@ -102,7 +102,7 @@ export default function Sidebar() {
       <div style={{ padding: '16px 8px', flex: 1, overflowY: 'auto' }}>
         <Link href="/" style={linkStyle('/')}>
           <span style={{ fontSize: 15 }}>🏠</span>
-          ダッシュボード
+          ホーム
         </Link>
 
         <div style={{ marginTop: 8, marginBottom: 4 }}>
