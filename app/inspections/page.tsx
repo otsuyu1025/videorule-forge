@@ -427,6 +427,15 @@ export default function InspectionsPage() {
 
   const renderResults = (inspection: VideoInspection) => {
     const normalResults = inspection.results.filter(r => r.category !== '薬機法')
+    // ruleContent から「（カテゴリ: xxx）」を分離してタグ表示用に返す
+    const parseRuleContent = (result: InspectionResult) => {
+      const match = result.ruleContent.match(/（カテゴリ[:：]\s*(.+?)）$/)
+      return {
+        content: match ? result.ruleContent.replace(/（カテゴリ[:：]\s*.+?）$/, '').trim() : result.ruleContent,
+        category: result.category || (match ? match[1] : null),
+      }
+    }
+
     const yakujiResults = inspection.results.filter(r => r.category === '薬機法')
 
     const okCount = normalResults.filter(r => (r.humanOverride || r.judgment) === 'OK').length
@@ -535,7 +544,14 @@ export default function InspectionsPage() {
               <div key={result.ruleId} style={{ background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 8, padding: '14px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: '#272343', fontWeight: 600, marginBottom: 4, lineHeight: 1.5 }}>{result.ruleContent}</div>
+                    {(() => { const { content, category } = parseRuleContent(result); return (<>
+                      {category && (
+                        <span style={{ background: '#272343', color: '#FFD803', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, display: 'inline-block', marginBottom: 6 }}>
+                          {category}
+                        </span>
+                      )}
+                      <div style={{ fontSize: 14, color: '#272343', fontWeight: 600, marginBottom: 4, lineHeight: 1.5 }}>{content}</div>
+                    </>)})()}
                     <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.75 }}>{result.reason}</div>
                     <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 4 }}>AI確信度: {Math.round((result.confidence || 0) * 100)}%</div>
                   </div>
