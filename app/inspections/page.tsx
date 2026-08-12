@@ -475,7 +475,10 @@ export default function InspectionsPage() {
           {reviewCount > 0 && <span style={{ fontSize: 13, background: '#fff3cd', color: '#856404', padding: '4px 12px', borderRadius: 20, fontWeight: 700 }}>要確認 {reviewCount}</span>}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {normalResults.map(result => {
+          {[...normalResults].sort((a, b) => {
+            const order: Record<string, number> = { 'NG': 0, '要確認': 1, 'OK': 2 }
+            return (order[(a.humanOverride || a.judgment) ?? ''] ?? 2) - (order[(b.humanOverride || b.judgment) ?? ''] ?? 2)
+          }).map(result => {
             const effective = result.humanOverride || result.judgment
             return (
               <div key={result.ruleId} style={{ background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 8, padding: '14px 16px' }}>
