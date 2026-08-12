@@ -13,9 +13,9 @@ const navItems = [
 ]
 
 const subItems = [
+  { href: '/production-rules', label: '検品ルール一覧', icon: '✅' },
   { href: '/production-rules/sources', label: 'ガイドライン登録', icon: '🗂️' },
   { href: '/production-rules/candidates', label: 'ルール候補', icon: '💡' },
-  { href: '/production-rules', label: '検品ルール一覧', icon: '✅' },
 ]
 
 export default function Sidebar() {
