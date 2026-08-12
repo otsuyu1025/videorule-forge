@@ -234,7 +234,7 @@ export default function SourcesPage() {
             知識ソースがまだありません
           </div>
           <div style={{ fontSize: 14, color: '#2D334A', lineHeight: 1.8, marginBottom: 20, opacity: 0.8 }}>
-            ガイドラインまたはお手本動画を登録してください。<br />
+            ガイドラインなどを登録してください。<br />
             AIが内容を解析してルール候補を生成します。
           </div>
           <Link href="/production-rules/sources/new" style={{
