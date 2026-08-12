@@ -469,6 +469,15 @@ export default function InspectionsPage() {
 
     return (
       <div>
+        {/* 免責表示 */}
+        <div style={{
+          marginBottom: 16, padding: '10px 14px',
+          background: '#FFFBF0', border: '1px solid #FFE082',
+          borderRadius: 8, fontSize: 11, color: '#795548', lineHeight: 1.8,
+        }}>
+          ⚠️ 本サービスは広告表現に関する予備的なチェックを行うものであり、薬機法その他の法令への適合性を保証するものではありません。最終的な判断は、必要に応じて薬事・法務の専門家へご確認ください。
+        </div>
+
         {/* 検品結果の要約 */}
         <div style={{ fontSize: 13, fontWeight: 700, color: '#272343', marginBottom: 10 }}>検品結果の要約</div>
         {hasSummary && (
@@ -597,14 +606,6 @@ export default function InspectionsPage() {
           </div>
         )}
         </DetailSection>
-
-        <div style={{
-          marginTop: 20, padding: '12px 16px',
-          background: '#FFFBF0', border: '1px solid #FFE082',
-          borderRadius: 8, fontSize: 11, color: '#795548', lineHeight: 1.8,
-        }}>
-          ⚠️ 本サービスは広告表現に関する予備的なチェックを行うものであり、薬機法その他の法令への適合性を保証するものではありません。最終的な判断は、必要に応じて薬事・法務の専門家へご確認ください。
-        </div>
       </div>
     )
   }
