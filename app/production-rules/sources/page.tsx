@@ -119,8 +119,7 @@ export default function SourcesPage() {
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>ガイドライン登録</h1>
           <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
-            検品ルールを育てるための材料です。<br />
-            ガイドラインなどを登録します。
+            デザインガイドラインやコンプライアンスルールなどから動画の検品ルールを作成します。
           </p>
         </div>
         <Link href="/production-rules/sources/new" style={{
