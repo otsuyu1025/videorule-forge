@@ -634,7 +634,7 @@ export default function InspectionsPage() {
         </div>
         <h1 style={{ fontSize: 30, fontWeight: 700, color: '#272343', margin: 0 }}>動画検品</h1>
         <p style={{ color: '#2D334A', marginTop: 10, fontSize: 15, lineHeight: 1.7, opacity: 0.8 }}>
-          動画URLを入力して、検品ルールと照合します。
+          動画をアップロードして、検品ルールをもとに検品します。
         </p>
       </div>
 
