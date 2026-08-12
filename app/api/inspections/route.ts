@@ -63,6 +63,14 @@ export async function POST(request: NextRequest) {
     // 通常ルールによる検品
     const results = await inspectVideo(feature, rules, originalDims, visionInterval)
 
+    // AIが category を返さない場合、ルールの category をマージする
+    const ruleMap = Object.fromEntries(rules.map(r => [r.id, r]))
+    for (const result of results) {
+      if (!result.category && ruleMap[result.ruleId]?.category) {
+        result.category = ruleMap[result.ruleId].category
+      }
+    }
+
     // 薬機法チェック（db.json の設定で有効時のみ）
     const yakuji = readYakuji()
     const yakujiEnabled = !!(db.data.settings as Record<string, unknown>)?.yakujiEnabled
