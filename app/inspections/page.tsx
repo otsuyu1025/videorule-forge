@@ -545,7 +545,7 @@ export default function InspectionsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {sortEntries(Object.entries(ngGroups)).map(([cat, reasons]) => (
                     <div key={cat}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#5a5a5a', marginBottom: 2 }}>{cat}</div>
+                      <span style={{ background: '#272343', color: '#FFD803', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, display: 'inline-block', marginBottom: 6 }}>{cat}</span>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {reasons.map((reason, i) => (
                           <div key={i} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>・{reason}</div>
@@ -562,7 +562,7 @@ export default function InspectionsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {sortEntries(Object.entries(reviewGroups)).map(([cat, reasons]) => (
                     <div key={cat}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#5a5a5a', marginBottom: 2 }}>{cat}</div>
+                      <span style={{ background: '#272343', color: '#FFD803', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, display: 'inline-block', marginBottom: 6 }}>{cat}</span>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {reasons.map((reason, i) => (
                           <div key={i} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>・{reason}</div>
