@@ -13,7 +13,6 @@ const navItems = [
 ]
 
 const subItems = [
-  { href: '/production-rules', label: '検品ルール一覧', icon: '✅' },
   { href: '/production-rules/sources', label: 'ガイドライン登録', icon: '🗂️' },
   { href: '/production-rules/candidates', label: 'ルール候補', icon: '💡' },
 ]
@@ -37,21 +36,22 @@ export default function Sidebar() {
     if (isMobile) setIsOpen(false)
   }, [pathname, isMobile])
 
-  const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href)
+  // セクションヘッダーは完全一致のみアクティブ。サブ項目は前方一致
+  const isActive = (href: string, exact = false) =>
+    href === '/' || exact ? pathname === href : pathname.startsWith(href)
 
   const isProductionRulesSection = pathname.startsWith('/production-rules')
 
-  const linkStyle = (href: string): React.CSSProperties => ({
+  const linkStyle = (href: string, exact = false): React.CSSProperties => ({
     display: 'flex',
     alignItems: 'center',
     gap: 9,
     padding: '9px 12px',
     borderRadius: 7,
     textDecoration: 'none',
-    color: isActive(href) ? '#272343' : 'rgba(255,255,255,0.72)',
-    background: isActive(href) ? '#FFD803' : 'transparent',
-    fontWeight: isActive(href) ? 600 : 400,
+    color: isActive(href, exact) ? '#272343' : 'rgba(255,255,255,0.72)',
+    background: isActive(href, exact) ? '#FFD803' : 'transparent',
+    fontWeight: isActive(href, exact) ? 600 : 400,
     fontSize: 14,
     marginBottom: 2,
     transition: 'all 0.1s',
