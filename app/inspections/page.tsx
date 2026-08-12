@@ -417,13 +417,13 @@ export default function InspectionsPage() {
       (yakujiResults.length === 1 && yakujiResults[0].ruleId === 'yakuji_overall' && yakujiResults[0].judgment === 'OK')
     const yakujiNgCount = yakujiResults.filter(r => r.judgment === 'NG').length
 
-    // カテゴリ別にグループ化して箇条書きサマリーを生成
+    // カテゴリ別にグループ化して箇条書きサマリーを生成（actionItem 優先、なければ reason）
     const groupByCategory = (results: InspectionResult[]) => {
       const groups: Record<string, string[]> = {}
       for (const r of results) {
         const cat = r.category || 'その他'
         if (!groups[cat]) groups[cat] = []
-        groups[cat].push(r.reason)
+        groups[cat].push(r.actionItem || r.reason)
       }
       return groups
     }

@@ -125,6 +125,8 @@ export interface InspectionResult {
   category?: string
   judgment: JudgmentResult
   reason: string
+  /** サマリー表示用の簡潔な修正指示（例: 「フォントサイズを12px以上に修正してください」）。ない場合は reason を使用 */
+  actionItem?: string | null
   confidence: number
   humanOverride?: JudgmentResult
   humanOverrideReason?: string
