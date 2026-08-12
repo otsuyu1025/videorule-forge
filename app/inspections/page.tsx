@@ -417,8 +417,58 @@ export default function InspectionsPage() {
       (yakujiResults.length === 1 && yakujiResults[0].ruleId === 'yakuji_overall' && yakujiResults[0].judgment === 'OK')
     const yakujiNgCount = yakujiResults.filter(r => r.judgment === 'NG').length
 
+    // カテゴリ別にグループ化して箇条書きサマリーを生成
+    const groupByCategory = (results: InspectionResult[]) => {
+      const groups: Record<string, string[]> = {}
+      for (const r of results) {
+        const cat = r.category || 'その他'
+        if (!groups[cat]) groups[cat] = []
+        groups[cat].push(r.reason)
+      }
+      return groups
+    }
+    const ngItems = normalResults.filter(r => (r.humanOverride || r.judgment) === 'NG')
+    const reviewItems = normalResults.filter(r => (r.humanOverride || r.judgment) === '要確認')
+    const yakujiNgItems = yakujiResults.filter(r => r.judgment === 'NG')
+
+    const ngGroups = groupByCategory([...ngItems, ...yakujiNgItems])
+    const reviewGroups = groupByCategory(reviewItems)
+    const hasSummary = ngItems.length > 0 || reviewItems.length > 0 || yakujiNgItems.length > 0
+
     return (
       <div>
+        {/* サマリー */}
+        {hasSummary && (
+          <div style={{ background: '#FAFAFA', border: '1px solid #E3F6F5', borderRadius: 10, padding: '18px 20px', marginBottom: 20 }}>
+            {Object.keys(ngGroups).length > 0 && (
+              <div style={{ marginBottom: reviewItems.length > 0 ? 14 : 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#721c24', marginBottom: 8 }}>🔴 要修正</div>
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {Object.entries(ngGroups).map(([cat, reasons]) => (
+                    <li key={cat} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>
+                      <span style={{ fontWeight: 600 }}>{cat}：</span>
+                      {reasons.join('・')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {Object.keys(reviewGroups).length > 0 && (
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#856404', marginBottom: 8 }}>🟡 要確認</div>
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {Object.entries(reviewGroups).map(([cat, reasons]) => (
+                    <li key={cat} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>
+                      <span style={{ fontWeight: 600 }}>{cat}：</span>
+                      {reasons.join('・')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
           <span style={{ fontSize: 13, background: '#d4edda', color: '#155724', padding: '4px 12px', borderRadius: 20, fontWeight: 700 }}>OK {okCount}</span>
           {ngCount > 0 && <span style={{ fontSize: 13, background: '#f8d7da', color: '#721c24', padding: '4px 12px', borderRadius: 20, fontWeight: 700 }}>NG {ngCount}</span>}
