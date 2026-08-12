@@ -4,7 +4,6 @@ import { readdir } from 'fs/promises'
 import path from 'path'
 import { extractVideoMeta } from './extractors/video-meta'
 import { extractFrames } from './extractors/frames'
-import { runOcr } from './extractors/ocr'
 import { transcribeAudio } from './extractors/transcription'
 import type { ExtractedFeatures, AnalysisConfig } from './types'
 import type { VideoStatus } from '@/types'
@@ -49,7 +48,7 @@ async function findExistingFrames(
  * Stage 1（AI不使用）:
  *   1. ffprobe でメタデータ取得
  *   2. ffmpeg でフレーム抽出（既存フレームがあれば再利用）
- *   3. Tesseract で各フレームのOCR
+ *   3. Vision OCR 用にフレームを準備（ocrText は空のまま後段で埋める）
  *   4. Whisper で音声文字起こし
  *
  * 各ステージ開始前に onStatusUpdate を呼び出す。
@@ -73,15 +72,8 @@ export async function analyzeVideo(
   const existingFrames = await findExistingFrames(videoId, config)
   const framePaths = existingFrames ?? await extractFrames(source, videoId, config)
 
-  // Stage 1c: OCR（DISABLE_OCR=true のときは Tesseract をスキップして Vision OCR に委ねる）
-  let frames: import('./types').FrameData[]
-  if (process.env.DISABLE_OCR === 'true') {
-    console.log('[OCR] DISABLE_OCR=true: Tesseract をスキップ（Vision OCR で代替）')
-    frames = framePaths.map(f => ({ timestamp: f.timestamp, imagePath: f.path, ocrText: '' }))
-  } else {
-    await onStatusUpdate?.('running_ocr')
-    frames = await runOcr(framePaths, onOcrProgress)
-  }
+  // Stage 1c: フレームを Vision OCR 用に準備（テキスト抽出は後段の Vision OCR が担う）
+  const frames: import('./types').FrameData[] = framePaths.map(f => ({ timestamp: f.timestamp, imagePath: f.path, ocrText: '' }))
 
   // Stage 1d: 音声文字起こし（音声トラックがない場合はスキップ）
   let transcription = ''

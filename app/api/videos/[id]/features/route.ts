@@ -135,7 +135,7 @@ export async function POST(
         await db.write()
       }, onOcrProgress, transcriptionDisabled)
 
-      // Tesseract の文字化けを Vision OCR で修正（60秒でタイムアウト、失敗時は Tesseract 結果を維持）
+      // Vision OCR でフレームのテキストを抽出（60秒でタイムアウト、失敗時は空テキストのまま続行）
       const visionInterval: number = (db.data.settings as Record<string, unknown> | undefined)?.visionFrameInterval as number
         ?? parseInt(process.env.VISION_FRAME_INTERVAL || '1')
 

@@ -11,7 +11,7 @@ import path from 'path'
 const LOGS_DIR = path.join(process.cwd(), 'data', 'logs')
 const RETENTION_DAYS = 30
 
-// [ffprobe] [ffmpeg] [Tesseract] [Whisper] [yt-dlp] [compress] [pipeline] [AI] [db] [logger] etc.
+// [ffprobe] [ffmpeg] [VisionOCR] [Whisper] [yt-dlp] [compress] [pipeline] [AI] [db] [logger] etc.
 const APP_LOG_RE = /^\[[\w\-\/\.]+\]/
 
 let logFilePath: string | null = null

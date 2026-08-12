@@ -207,8 +207,8 @@ function buildVisionContent(
 }
 
 /**
- * フレーム画像から Vision で正確なテキストを抽出し、Tesseract の文字化けを上書きする。
- * 失敗時は元の frames をそのまま返す（Tesseract 結果を維持）。
+ * フレーム画像から Vision OCR でテキストを抽出する。
+ * 失敗時は元の frames をそのまま返す。
  */
 export async function extractFrameTexts(
   frames: FrameData[],

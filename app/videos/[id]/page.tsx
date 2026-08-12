@@ -61,7 +61,7 @@ function AnalysisProgress({ status, isSample }: { status: string; isSample: bool
   const steps = [
     { key: 'extracting_meta', label: '動画情報を取得', detail: 'ffprobe' },
     { key: 'extracting_frames', label: 'フレームを抽出', detail: 'ffmpeg' },
-    { key: 'running_ocr', label: 'テキストを読み取り', detail: 'Tesseract OCR' },
+    { key: 'running_ocr', label: 'テキストを読み取り', detail: 'Vision OCR' },
     { key: 'transcribing', label: '音声を文字起こし', detail: 'Whisper' },
     ...(isSample ? [{ key: 'generating_candidates', label: 'ルール候補を生成', detail: 'Claude AI' }] : []),
   ]
