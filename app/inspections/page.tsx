@@ -389,6 +389,8 @@ export default function InspectionsPage() {
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : '検品に失敗しました。時間をおいてからもう一度お試しください。')
       setStep('error')
+      // エラー時も履歴を更新して、DBに残った running レコードを表示する
+      fetchHistory()
     }
   }
 
@@ -401,6 +403,21 @@ export default function InspectionsPage() {
     await fetch(`/api/inspections/${inspectionId}`, { method: 'DELETE' })
     if (expandedId === inspectionId) setExpandedId(null)
     setHistory(prev => prev.filter(h => h.inspection.id !== inspectionId))
+  }
+
+  const handleReset = async (e: { stopPropagation(): void }, inspectionId: string) => {
+    e.stopPropagation()
+    if (!confirm('この検品をエラー状態にリセットして再検品できるようにしますか？')) return
+    const res = await fetch(`/api/inspections/${inspectionId}/reset`, { method: 'POST' })
+    if (!res.ok) {
+      alert('リセットに失敗しました')
+      return
+    }
+    setHistory(prev => prev.map(h =>
+      h.inspection.id === inspectionId
+        ? { ...h, inspection: { ...h.inspection, status: 'error' } }
+        : h
+    ))
   }
 
   const handleDeleteVideo = async (e: React.MouseEvent, videoId: string) => {
@@ -555,19 +572,8 @@ export default function InspectionsPage() {
                     <div style={{ fontSize: 12, color: '#2D334A', opacity: 0.75 }}>{result.reason}</div>
                     <div style={{ fontSize: 11, color: '#BAE8E8', marginTop: 4 }}>AI確信度: {Math.round((result.confidence || 0) * 100)}%</div>
                   </div>
-                  <div style={{ marginLeft: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <div style={{ marginLeft: 16, flexShrink: 0 }}>
                     <JudgmentBadge judgment={effective} />
-                    <div style={{ display: 'flex', gap: 3 }}>
-                      {(['OK', 'NG', '要確認'] as const).map(j => (
-                        <button key={j} onClick={() => handleHumanOverride(inspection.id, result, j)} style={{
-                          fontSize: 11, padding: '2px 7px', borderRadius: 4,
-                          border: '1px solid #ddd',
-                          background: effective === j ? '#272343' : '#fff',
-                          color: effective === j ? '#FFD803' : '#999',
-                          cursor: 'pointer',
-                        }}>{j}</button>
-                      ))}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -780,18 +786,25 @@ export default function InspectionsPage() {
           )}
 
           <div>
-            <button
-              type="submit"
-              disabled={isRunning}
-              style={{
-                background: isRunning ? '#ccc' : '#272343',
-                color: '#FFD803', border: 'none', borderRadius: 8,
-                padding: '14px 32px', fontWeight: 700, fontSize: 15,
-                cursor: isRunning ? 'default' : 'pointer',
-              }}
-            >
-              {isRunning ? '検品中...' : '🔍 検品する'}
-            </button>
+            {(() => {
+              const noInput = inputMode === 'file' ? !file : !form.url.trim()
+              const isDisabled = isRunning || noInput
+              return (
+                <button
+                  type="submit"
+                  disabled={isDisabled}
+                  style={{
+                    background: isDisabled ? '#ccc' : '#272343',
+                    color: isDisabled ? '#fff' : '#FFD803', border: 'none', borderRadius: 8,
+                    padding: '14px 32px', fontWeight: 700, fontSize: 15,
+                    cursor: isDisabled ? 'default' : 'pointer',
+                    opacity: noInput && !isRunning ? 0.6 : 1,
+                  }}
+                >
+                  {isRunning ? '検品中...' : '🔍 検品する'}
+                </button>
+              )
+            })()}
           </div>
         </form>
       </div>
@@ -890,6 +903,19 @@ export default function InspectionsPage() {
                           return <div style={{ fontSize: 11, color: '#BAE8E8', opacity: 0.7 }}>実行時間: {label}</div>
                         })()}
                       </div>
+                      {isRunning && (
+                        <button
+                          onClick={e => handleReset(e, inspection.id)}
+                          title="エラー状態にリセットして再検品できるようにする"
+                          style={{
+                            background: '#272343', border: 'none', borderRadius: 6,
+                            cursor: 'pointer', padding: '5px 10px', color: '#FFD803', fontSize: 12,
+                            fontWeight: 700, lineHeight: 1, flexShrink: 0,
+                          }}
+                        >
+                          🔄 再検品
+                        </button>
+                      )}
                       <button
                         onClick={e => handleDelete(e, inspection.id, isRunning)}
                         title="この検品を削除"
@@ -903,7 +929,7 @@ export default function InspectionsPage() {
                       >
                         🗑
                       </button>
-                      {!isRunning && <span style={{ color: '#BAE8E8', fontSize: 16 }}>{isExpanded ? '▲' : '▼'}</span>}
+                      {!isRunning && inspection.results.length > 0 && <span style={{ color: '#BAE8E8', fontSize: 16 }}>{isExpanded ? '▲' : '▼'}</span>}
                     </div>
                   </div>
                   {isExpanded && !isRunning && (
