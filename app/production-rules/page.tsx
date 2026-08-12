@@ -165,18 +165,20 @@ export default function RulesPage() {
             </div>
           )}
         </div>
-        <button
-          onClick={() => { setShowAddForm(v => !v); setAddForm({ content: '', category: '', reason: '' }) }}
-          style={{ background: showAddForm ? '#E3F6F5' : '#FFD803', color: '#272343', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}
-        >
-          {showAddForm ? '✕ キャンセル' : '+ 手動で追加'}
-        </button>
-        <Link
-          href="/production-rules/sources"
-          style={{ background: '#272343', color: '#FFD803', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, textDecoration: 'none', whiteSpace: 'nowrap' }}
-        >
-          + ガイドラインなどから追加
-        </Link>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+          <button
+            onClick={() => { setShowAddForm(v => !v); setAddForm({ content: '', category: '', reason: '' }) }}
+            style={{ background: showAddForm ? '#E3F6F5' : '#FFD803', color: '#272343', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            {showAddForm ? '✕ キャンセル' : '+ 手動で追加'}
+          </button>
+          <Link
+            href="/production-rules/sources"
+            style={{ background: '#272343', color: '#FFD803', borderRadius: 8, padding: '11px 20px', fontWeight: 700, fontSize: 14, textDecoration: 'none', whiteSpace: 'nowrap' }}
+          >
+            + ガイドラインから追加
+          </Link>
+        </div>
       </div>
 
       {/* 手動追加フォーム */}
