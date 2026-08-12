@@ -427,6 +427,20 @@ export default function InspectionsPage() {
       }
       return groups
     }
+    // 複数の理由を自然な日本語文章に要約する
+    const summarizeReasons = (reasons: string[]): string => {
+      if (reasons.length === 1) return reasons[0]
+      if (reasons.length === 2) return `${reasons[0]}。また、${reasons[1]}。`
+      return `${reasons[0]}のほか、計${reasons.length}件の問題が確認されました。`
+    }
+    // 「その他」を末尾に並べるソート
+    const sortEntries = (entries: [string, string[]][]) =>
+      entries.sort(([a], [b]) => {
+        if (a === 'その他') return 1
+        if (b === 'その他') return -1
+        return 0
+      })
+
     const ngItems = normalResults.filter(r => (r.humanOverride || r.judgment) === 'NG')
     const reviewItems = normalResults.filter(r => (r.humanOverride || r.judgment) === '要確認')
     const yakujiNgItems = yakujiResults.filter(r => r.judgment === 'NG')
@@ -444,10 +458,10 @@ export default function InspectionsPage() {
               <div style={{ marginBottom: reviewItems.length > 0 ? 14 : 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#721c24', marginBottom: 8 }}>🔴 要修正</div>
                 <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {Object.entries(ngGroups).map(([cat, reasons]) => (
+                  {sortEntries(Object.entries(ngGroups)).map(([cat, reasons]) => (
                     <li key={cat} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>
                       <span style={{ fontWeight: 600 }}>{cat}：</span>
-                      {reasons.join('・')}
+                      {summarizeReasons(reasons)}
                     </li>
                   ))}
                 </ul>
@@ -457,10 +471,10 @@ export default function InspectionsPage() {
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#856404', marginBottom: 8 }}>🟡 要確認</div>
                 <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {Object.entries(reviewGroups).map(([cat, reasons]) => (
+                  {sortEntries(Object.entries(reviewGroups)).map(([cat, reasons]) => (
                     <li key={cat} style={{ fontSize: 13, color: '#272343', lineHeight: 1.6 }}>
                       <span style={{ fontWeight: 600 }}>{cat}：</span>
-                      {reasons.join('・')}
+                      {summarizeReasons(reasons)}
                     </li>
                   ))}
                 </ul>
