@@ -109,7 +109,7 @@ export default function SourcesPage() {
     <div style={{ padding: 48, maxWidth: 860, margin: '0 auto' }}>
       <div style={{ marginBottom: 4 }}>
         <Link href="/production-rules" style={{ color: '#2D334A', fontSize: 13, textDecoration: 'none', opacity: 0.6 }}>
-          ← 動画制作ルール
+          ← 検品ルール
         </Link>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, marginTop: 20 }}>
@@ -119,7 +119,7 @@ export default function SourcesPage() {
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>知識ソース</h1>
           <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
-            動画制作ルールを育てるための材料です。<br />
+            検品ルールを育てるための材料です。<br />
             ガイドラインなどを登録します。
           </p>
         </div>

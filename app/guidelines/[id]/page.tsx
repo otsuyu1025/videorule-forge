@@ -205,7 +205,7 @@ export default function GuidelineDetailPage() {
           このガイドラインからルール候補を生成
         </div>
         <p style={{ fontSize: 14, color: '#2D334A', lineHeight: 1.7, marginTop: 0, marginBottom: 20 }}>
-          AIがガイドライン文書を解析し、動画制作ルールの候補を自動抽出します。<br />
+          AIがガイドライン文書を解析し、検品ルールの候補を自動抽出します。<br />
           生成された候補は「ルール候補」画面で確認・承認できます。
         </p>
 

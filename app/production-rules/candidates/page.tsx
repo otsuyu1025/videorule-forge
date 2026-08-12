@@ -277,7 +277,7 @@ export default function CandidatesPage() {
 
       <div style={{ marginBottom: 4 }}>
         <Link href="/production-rules" style={{ color: '#2D334A', fontSize: 13, textDecoration: 'none', opacity: 0.6 }}>
-          ← 動画制作ルール
+          ← 検品ルール
         </Link>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, marginTop: 20 }}>
@@ -288,7 +288,7 @@ export default function CandidatesPage() {
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#272343', margin: 0 }}>ルール候補</h1>
           <p style={{ color: '#2D334A', marginTop: 8, fontSize: 14, lineHeight: 1.7, opacity: 0.8 }}>
             AIが知識ソースを解析して提案したルール候補です。<br />
-            承認するとルール管理に表示され、動画制作ルールとして使うことができます。
+            承認すると検品ルール一覧に表示され、検品ルールとして使うことができます。
           </p>
         </div>
         {!loading && candidates.length > 0 && (

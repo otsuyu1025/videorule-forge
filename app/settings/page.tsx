@@ -163,7 +163,7 @@ export default function SettingsPage() {
           <p style={sectionDesc}>
             薬機法（医薬品医療機器等法）の広告規制に関する記述からAIにルールを学習させる機能です。<br />
             ルールの管理・資料の更新は
-            <a href="/production-rules/yakuji" style={{ color: '#272343', fontWeight: 600 }}>動画制作ルール → 薬機法</a>
+            <a href="/production-rules/yakuji" style={{ color: '#272343', fontWeight: 600 }}>検品ルール → 薬機法</a>
             から行えます。
           </p>
           {loading ? (

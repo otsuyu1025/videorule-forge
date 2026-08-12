@@ -142,7 +142,7 @@ export default function SourcesNewPage() {
           知識ソースを追加
         </h1>
         <p style={{ color: '#2D334A', marginTop: 10, fontSize: 14, lineHeight: 1.7, opacity: 0.75 }}>
-          何から動画制作ルールを育てますか？
+          何から検品ルールを育てますか？
         </p>
       </div>
 

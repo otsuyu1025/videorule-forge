@@ -7,7 +7,7 @@ import { useSession, signOut } from 'next-auth/react'
 
 const navItems = [
   { href: '/', label: 'ホーム', icon: '🏠' },
-  { href: '/production-rules', label: '動画制作ルール', icon: '📋', isSection: true },
+  { href: '/production-rules', label: '検品ルール', icon: '📋', isSection: true },
   { href: '/inspections', label: '動画検品', icon: '🔍' },
   { href: '/settings', label: '設定', icon: '⚙️' },
 ]
@@ -15,7 +15,7 @@ const navItems = [
 const subItems = [
   { href: '/production-rules/sources', label: '知識ソース', icon: '🗂️' },
   { href: '/production-rules/candidates', label: 'ルール候補', icon: '💡' },
-  { href: '/production-rules/rules', label: 'ルール管理', icon: '✅' },
+  { href: '/production-rules', label: '検品ルール一覧', icon: '✅' },
 ]
 
 export default function Sidebar() {
@@ -93,7 +93,7 @@ export default function Sidebar() {
             AI動画検品
           </div>
           <div style={{ color: '#FFFFFE', fontSize: 11, fontWeight: 400, lineHeight: 1.5, opacity: 0.65 }}>
-            動画制作ルールを育てる<br />プラットフォーム
+            検品ルールを育てる<br />プラットフォーム
           </div>
         </div>
       )}
@@ -116,7 +116,7 @@ export default function Sidebar() {
             }}
           >
             <span style={{ fontSize: 15 }}>📋</span>
-            動画制作ルール
+            検品ルール
           </Link>
 
           {isProductionRulesSection && (

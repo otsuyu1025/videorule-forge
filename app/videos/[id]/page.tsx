@@ -370,8 +370,8 @@ export default function VideoDetailPage() {
         <div style={{ background: '#E3F6F5', borderRadius: 12, padding: 28, marginBottom: 32, textAlign: 'center' }}>
           <div style={{ fontSize: 14, color: '#2D334A', marginBottom: 16 }}>
             {isSample
-              ? 'この動画を解析して、動画制作ルールの候補を生成します。'
-              : 'この動画を解析して、動画制作ルールと照合できるようにします。'}
+              ? 'この動画を解析して、検品ルールの候補を生成します。'
+              : 'この動画を解析して、検品ルールと照合できるようにします。'}
           </div>
           <button
             onClick={handleAnalyze}
@@ -629,7 +629,7 @@ export default function VideoDetailPage() {
           </div>
           {pendingCandidates.length > 0 && (
             <div style={{ marginTop: 16, padding: '12px 16px', background: '#FFF8DC', borderRadius: 8, fontSize: 13, color: '#2D334A' }}>
-              💡 承認したルールは自動的に「動画制作ルール」に追加されます。
+              💡 承認したルールは自動的に「検品ルール」に追加されます。
             </div>
           )}
         </section>
@@ -640,7 +640,7 @@ export default function VideoDetailPage() {
         <section style={{ marginBottom: 32 }}>
           <div style={{ background: '#272343', borderRadius: 12, padding: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ color: '#FFD803', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>🔍 動画制作ルールで検査する</div>
+              <div style={{ color: '#FFD803', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>🔍 検品ルールで検査する</div>
               <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14 }}>登録されたルールとこの動画を照合して検査レポートを作成します。</div>
             </div>
             <Link href="/inspections" style={{ background: '#FFD803', color: '#272343', fontWeight: 700, padding: '10px 20px', borderRadius: 8, textDecoration: 'none', fontSize: 14, whiteSpace: 'nowrap' }}>

@@ -166,7 +166,7 @@ export default function GuidelinesPage() {
             ガイドライン
           </h1>
           <p style={{ color: '#2D334A', marginTop: 10, fontSize: 15, lineHeight: 1.7, opacity: 0.85 }}>
-            AIが動画制作ルールを生成するときに参照する、<br />
+            AIが検品ルールを生成するときに参照する、<br />
             企業の知識ベースです。
           </p>
         </div>

@@ -618,7 +618,7 @@ export default function InspectionsPage() {
         </div>
         <h1 style={{ fontSize: 30, fontWeight: 700, color: '#272343', margin: 0 }}>動画検品</h1>
         <p style={{ color: '#2D334A', marginTop: 10, fontSize: 15, lineHeight: 1.7, opacity: 0.8 }}>
-          動画URLを入力して、動画制作ルールと照合します。
+          動画URLを入力して、検品ルールと照合します。
         </p>
       </div>
 
@@ -752,7 +752,7 @@ export default function InspectionsPage() {
                     </div>
                   )}
                 </div>
-                <StepIndicator current={step} step="inspecting" label="動画制作ルールと照合中" />
+                <StepIndicator current={step} step="inspecting" label="検品ルールと照合中" />
               </div>
             </>
           )}
