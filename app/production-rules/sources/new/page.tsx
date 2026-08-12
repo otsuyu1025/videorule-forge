@@ -176,7 +176,7 @@ export default function SourcesNewPage() {
           >
             <div style={{ fontSize: 32, marginBottom: 14 }}>⚖️</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#272343', marginBottom: 8 }}>薬機法をアップロード</div>
-            <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>薬機法の広告規制資料をテキスト・PDFで登録します。AIが判定ルールを自動抽出します。</div>
+            <div style={{ fontSize: 13, color: '#2D334A', lineHeight: 1.7, opacity: 0.8 }}>薬機法の広告規制資料をテキスト・PDFで登録します。AIが広告表現リスクの予備チェックに活用するルールを自動抽出します。適合性の最終判断は専門家へご確認ください。</div>
           </Link>
 
           {sampleVideoEnabled && (
