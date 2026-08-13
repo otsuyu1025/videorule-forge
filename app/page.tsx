@@ -95,28 +95,13 @@ export default function TopPage() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {guideItems.map(item => (
-            <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
-              <div style={{
-                background: '#F5FCFC',
-                border: '1px solid #E3F6F5',
-                borderRadius: 10,
-                padding: '12px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                textAlign: 'left',
-                transition: 'box-shadow 0.15s',
-              }}
-                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 10px rgba(39,35,67,0.08)')}
-                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
-              >
-                <div style={{ fontSize: 20, flexShrink: 0, width: 32, textAlign: 'center' }}>{item.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: '#BAE8E8', marginBottom: 2 }}>{item.scenario}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#272343' }}>{item.label}</div>
-                </div>
-                <div style={{ fontSize: 16, color: '#BAE8E8', flexShrink: 0 }}>›</div>
+            <Link key={item.href} href={item.href} className="guide-card">
+              <div style={{ fontSize: 20, flexShrink: 0, width: 32, textAlign: 'center' }}>{item.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#BAE8E8', marginBottom: 2 }}>{item.scenario}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#272343' }}>{item.label}</div>
               </div>
+              <div style={{ fontSize: 16, color: '#BAE8E8', flexShrink: 0 }}>›</div>
             </Link>
           ))}
         </div>
