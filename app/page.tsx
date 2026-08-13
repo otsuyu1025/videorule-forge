@@ -48,7 +48,7 @@ export default function TopPage() {
         何をしますか？
       </h1>
 
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 56 }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 80 }}>
         <Link href="/inspections" style={{ textDecoration: 'none' }}>
           <div style={{
             background: '#272343',
