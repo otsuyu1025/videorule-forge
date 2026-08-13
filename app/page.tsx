@@ -1,5 +1,32 @@
 import Link from 'next/link'
 
+const guideItems = [
+  {
+    icon: '🎬',
+    scenario: '手元の動画を検品したい',
+    label: '動画検品',
+    href: '/inspections',
+  },
+  {
+    icon: '📋',
+    scenario: '今登録されているルールを確認したい',
+    label: '検品ルール一覧',
+    href: '/production-rules',
+  },
+  {
+    icon: '🗂️',
+    scenario: 'ガイドラインやルールを登録したい',
+    label: 'ガイドライン登録',
+    href: '/production-rules/sources',
+  },
+  {
+    icon: '⚖️',
+    scenario: '薬機法のルールを確認したい',
+    label: '薬機法',
+    href: '/production-rules/yakuji',
+  },
+]
+
 export default function TopPage() {
   return (
     <div style={{
@@ -8,7 +35,7 @@ export default function TopPage() {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: 'calc(100vh - 120px)',
-      padding: '0 24px',
+      padding: '40px 24px 60px',
       textAlign: 'center',
     }}>
       <h1 style={{
@@ -21,7 +48,7 @@ export default function TopPage() {
         何をしますか？
       </h1>
 
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 56 }}>
         <Link href="/inspections" style={{ textDecoration: 'none' }}>
           <div style={{
             background: '#272343',
@@ -52,6 +79,47 @@ export default function TopPage() {
             検品ルールを登録する
           </div>
         </Link>
+      </div>
+
+      {/* 使い方ガイド */}
+      <div style={{ width: '100%', maxWidth: 480 }}>
+        <div style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          color: '#BAE8E8',
+          marginBottom: 12,
+          textTransform: 'uppercase',
+        }}>
+          使い方ガイド
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {guideItems.map(item => (
+            <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
+              <div style={{
+                background: '#F5FCFC',
+                border: '1px solid #E3F6F5',
+                borderRadius: 10,
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                textAlign: 'left',
+                transition: 'box-shadow 0.15s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 10px rgba(39,35,67,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+              >
+                <div style={{ fontSize: 20, flexShrink: 0, width: 32, textAlign: 'center' }}>{item.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#BAE8E8', marginBottom: 2 }}>{item.scenario}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#272343' }}>{item.label}</div>
+                </div>
+                <div style={{ fontSize: 16, color: '#BAE8E8', flexShrink: 0 }}>›</div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   )
