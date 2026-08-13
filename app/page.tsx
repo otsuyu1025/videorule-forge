@@ -84,10 +84,10 @@ export default function TopPage() {
       {/* 使い方ヒント */}
       <div style={{ width: '100%', maxWidth: 480 }}>
         <div style={{
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: 700,
           letterSpacing: '0.08em',
-          color: '#9ca3af',
+          color: '#BAE8E8',
           marginBottom: 12,
           textTransform: 'uppercase',
         }}>
