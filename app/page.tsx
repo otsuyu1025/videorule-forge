@@ -81,27 +81,27 @@ export default function TopPage() {
         </Link>
       </div>
 
-      {/* 使い方ガイド */}
+      {/* 使い方ヒント */}
       <div style={{ width: '100%', maxWidth: 480 }}>
         <div style={{
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: '0.08em',
-          color: '#BAE8E8',
+          color: '#9ca3af',
           marginBottom: 12,
           textTransform: 'uppercase',
         }}>
-          使い方ガイド
+          使い方ヒント
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {guideItems.map(item => (
             <Link key={item.href} href={item.href} className="guide-card">
               <div style={{ fontSize: 20, flexShrink: 0, width: 32, textAlign: 'center' }}>{item.icon}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#BAE8E8', marginBottom: 2 }}>{item.scenario}</div>
+                <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>{item.scenario}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#272343' }}>{item.label}</div>
               </div>
-              <div style={{ fontSize: 16, color: '#BAE8E8', flexShrink: 0 }}>›</div>
+              <div style={{ fontSize: 16, color: '#9ca3af', flexShrink: 0 }}>›</div>
             </Link>
           ))}
         </div>
