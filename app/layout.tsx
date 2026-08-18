@@ -4,8 +4,8 @@ import Sidebar from '@/components/Sidebar'
 import Providers from '@/components/Providers'
 
 export const metadata: Metadata = {
-  title: 'VideoRule Forge — 検品ルールを育てるプラットフォーム',
-  description: 'AI動画検品。検品ルールを育てるプラットフォーム。',
+  title: 'VideoRule Forge — 動画広告検品プラットフォーム',
+  description: 'AI動画検品。動画広告検品プラットフォーム。',
 }
 
 export default function RootLayout({

@@ -93,7 +93,7 @@ export default function Sidebar() {
             AI動画検品
           </div>
           <div style={{ color: '#FFFFFE', fontSize: 11, fontWeight: 400, lineHeight: 1.5, opacity: 0.65 }}>
-            検品ルールを育てる<br />プラットフォーム
+            動画広告検品プラットフォーム
           </div>
         </div>
       )}

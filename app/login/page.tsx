@@ -33,7 +33,7 @@ function LoginContent() {
           </div>
           <div style={{ fontSize: 14, color: 'rgba(255,216,3,0.7)' }}>AI動画検品</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4, lineHeight: 1.6 }}>
-            動画制作ルールを育てるプラットフォーム
+            動画広告検品プラットフォーム
           </div>
         </div>
 
