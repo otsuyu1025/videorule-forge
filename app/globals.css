@@ -52,6 +52,11 @@ body {
   background: #FFFFFE;
 }
 
+/* 未ログイン時（LP・ログイン画面など）: サイドバーなしで全幅 */
+.app-main-full {
+  min-height: 100vh;
+}
+
 /* モバイルヘッダー (デスクトップでは非表示) */
 .mobile-header {
   display: none;

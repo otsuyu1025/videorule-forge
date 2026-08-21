@@ -1,4 +1,7 @@
 import Link from 'next/link'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import LandingPage from '@/components/LandingPage'
 
 const guideItems = [
   {
@@ -27,7 +30,12 @@ const guideItems = [
   },
 ]
 
-export default function TopPage() {
+export default async function TopPage() {
+  const session = await getServerSession(authOptions)
+
+  // 未ログインはLP表示
+  if (!session) return <LandingPage />
+
   return (
     <div style={{
       display: 'flex',
