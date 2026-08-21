@@ -6,6 +6,9 @@ import Providers from '@/components/Providers'
 export const metadata: Metadata = {
   title: 'VideoRule Forge — 動画広告検品プラットフォーム',
   description: 'AI動画検品。動画広告検品プラットフォーム。',
+  verification: {
+    google: 'Jph0dp7FCQ-R8AGCNWnkzaKRxIuBYvzQjTbPAYJCzxw',
+  },
 }
 
 export default function RootLayout({
