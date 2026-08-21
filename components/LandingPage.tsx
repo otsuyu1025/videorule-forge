@@ -89,7 +89,7 @@ export default function LandingPage() {
           margin: '0 0 20px',
           letterSpacing: '-0.01em',
         }}>
-          薬機法・ガイドラインへの適合を、<br />
+          動画広告の薬機法・ガイドライン適合を、<br />
           AIが自動で確認する。
         </h1>
 
