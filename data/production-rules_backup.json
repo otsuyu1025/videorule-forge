@@ -1,0 +1,172 @@
+[
+  {
+    "id": "d3884eec-d7be-4b6b-9444-a3e8c87840e3",
+    "content": "1行のテロップは最低2秒間、2行以上は最低3秒間表示する",
+    "category": "テキスト",
+    "reason": "ガイドライン第3章「テロップの表示時間」",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "abcaab16-37a5-4d39-bdfe-b087de6409d8",
+      "name": "design-guideline.txt"
+    },
+    "createdAt": "2026-07-09T09:06:02.250Z",
+    "updatedAt": "2026-07-09T09:06:02.250Z"
+  },
+  {
+    "id": "abdd4d09-e5e1-45c3-b24d-e96857d25cbc",
+    "content": "英数字フォントはHelvetica NeuveまたはRobotoに統一する",
+    "category": "テキスト",
+    "reason": "ガイドライン第3章「英数字フォント」",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "abcaab16-37a5-4d39-bdfe-b087de6409d8",
+      "name": "design-guideline.txt"
+    },
+    "createdAt": "2026-07-09T09:05:57.342Z",
+    "updatedAt": "2026-07-09T09:05:57.342Z"
+  },
+  {
+    "id": "f2049d88-a25f-4ab2-9ca3-7e7fc1fcc50c",
+    "content": "手書き・装飾フォントは使用禁止する",
+    "category": "テキスト",
+    "reason": "ガイドライン第3章「日本語フォント」",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "abcaab16-37a5-4d39-bdfe-b087de6409d8",
+      "name": "design-guideline.txt"
+    },
+    "createdAt": "2026-07-09T09:05:53.922Z",
+    "updatedAt": "2026-07-09T09:05:53.922Z"
+  },
+  {
+    "id": "991d913b-f8c7-4911-8990-469a2e6ec1b7",
+    "content": "日本語フォントはNoto Sans JP（Regular/Bold）または游ゴシック Boldに統一する",
+    "category": "テキスト",
+    "reason": "ガイドライン第3章「日本語フォント」",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "abcaab16-37a5-4d39-bdfe-b087de6409d8",
+      "name": "design-guideline.txt"
+    },
+    "createdAt": "2026-07-09T09:05:49.628Z",
+    "updatedAt": "2026-07-09T09:05:49.628Z"
+  },
+  {
+    "id": "3a987916-b45d-41d3-9b6e-fd7336a70de2",
+    "content": "メインカラーはコーポレートブルー（#0057A8）またはホワイト（#FFFFFF）のみを使用する",
+    "category": "ブランドカラー",
+    "reason": "ガイドライン第1章「ブランドカラー」のメインカラー定義",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "abcaab16-37a5-4d39-bdfe-b087de6409d8",
+      "name": "design-guideline.txt"
+    },
+    "createdAt": "2026-07-09T09:05:33.996Z",
+    "updatedAt": "2026-07-09T09:05:33.996Z"
+  },
+  {
+    "id": "5182ae89-81a8-4ed8-9599-374782200a9c",
+    "content": "BGMが−20 dBFS 未満である",
+    "category": "サウンド",
+    "reason": "",
+    "isActive": true,
+    "history": [],
+    "createdAt": "2026-07-09T08:45:40.939Z",
+    "updatedAt": "2026-07-09T08:45:40.939Z"
+  },
+  {
+    "id": "e2052398-9e3f-4e36-89fa-a2e2d2d38d6e",
+    "content": "政治的・宗教的な主張・勧誘を含む表現を禁止する",
+    "category": "コンプライアンス",
+    "reason": "4. 差別・ハラスメント表現の禁止の「禁止表現」に記載",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "62e7d313-fd6e-4542-aeff-313f3f827eda",
+      "name": "compliance-guideline.txt"
+    },
+    "createdAt": "2026-07-09T08:44:59.233Z",
+    "updatedAt": "2026-07-09T08:44:59.233Z"
+  },
+  {
+    "id": "cf89057f-633c-4f0b-9302-2861a1983ee8",
+    "content": "特定の個人・団体を誹謗中傷する表現を禁止する",
+    "category": "コンプライアンス",
+    "reason": "4. 差別・ハラスメント表現の禁止の「禁止表現」に記載",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "62e7d313-fd6e-4542-aeff-313f3f827eda",
+      "name": "compliance-guideline.txt"
+    },
+    "createdAt": "2026-07-09T08:44:53.642Z",
+    "updatedAt": "2026-07-09T08:44:53.642Z"
+  },
+  {
+    "id": "12158dec-fd5e-4b85-b96a-b542c8403923",
+    "content": "性的な表現・暴力的な表現を禁止する",
+    "category": "コンプライアンス",
+    "reason": "4. 差別・ハラスメント表現の禁止の「禁止表現」に記載",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "62e7d313-fd6e-4542-aeff-313f3f827eda",
+      "name": "compliance-guideline.txt"
+    },
+    "createdAt": "2026-07-09T08:44:47.965Z",
+    "updatedAt": "2026-07-09T08:44:47.965Z"
+  },
+  {
+    "id": "ce6ee56e-0a5d-4b6d-9756-3f415ca698d8",
+    "content": "社内会議や内部資料が映り込まないよう撮影環境を整備する",
+    "category": "コンプライアンス",
+    "reason": "2. 肖像権・プライバシーの「社内情報の取り扱い」に記載",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "62e7d313-fd6e-4542-aeff-313f3f827eda",
+      "name": "compliance-guideline.txt"
+    },
+    "createdAt": "2026-07-09T08:44:43.455Z",
+    "updatedAt": "2026-07-09T08:44:43.455Z"
+  },
+  {
+    "id": "b76bc059-31f8-4777-b2eb-2cde0f07b126",
+    "content": "動画内に氏名・住所・電話番号・メールアドレスなど個人を特定できる情報を表示しない",
+    "category": "コンプライアンス",
+    "reason": "2. 肖像権・プライバシーの「個人情報の取り扱い」に記載",
+    "isActive": true,
+    "history": [],
+    "source": {
+      "type": "guideline",
+      "id": "62e7d313-fd6e-4542-aeff-313f3f827eda",
+      "name": "compliance-guideline.txt"
+    },
+    "createdAt": "2026-07-09T08:44:37.026Z",
+    "updatedAt": "2026-07-09T08:44:37.026Z"
+  },
+  {
+    "id": "959fbf2e-e6e7-4368-b949-44b976fc5b80",
+    "content": "音声とBGMの音量差が −6 dB 以上ある",
+    "category": "サウンド",
+    "reason": "",
+    "isActive": true,
+    "history": [],
+    "createdAt": "2026-07-07T05:16:09.286Z",
+    "updatedAt": "2026-07-07T05:16:09.286Z"
+  }
+]
