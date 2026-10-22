@@ -26,11 +26,12 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // 認証不要なパスを除外:
-    //   /api/auth/*  — NextAuth 自身の認証エンドポイント
-    //   /api/health  — UptimeRobot 死活監視
-    //   /_next/*     — Next.js 静的ファイル
+    //   /api/auth/*           — NextAuth 自身の認証エンドポイント
+    //   /api/health           — UptimeRobot 死活監視
+    //   /api/admin/export-db  — 一時的なDBエクスポート（バックアップ後削除）
+    //   /_next/*              — Next.js 静的ファイル
     //   /favicon.ico
-    //   /login       — ログインページ
-    '/((?!api/auth|api/health|_next/static|_next/image|favicon\\.ico|login).*)',
+    //   /login                — ログインページ
+    '/((?!api/auth|api/health|api/admin/export-db|_next/static|_next/image|favicon\\.ico|login).*)',
   ],
 }
