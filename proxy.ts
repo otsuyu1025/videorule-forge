@@ -3,8 +3,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
-  // / はLP（公開ページ）なので認証不要
-  if (request.nextUrl.pathname === '/') {
+  const { pathname } = request.nextUrl
+
+  // 認証不要パス
+  if (pathname === '/' || pathname === '/api/admin/export-db') {
     return NextResponse.next()
   }
 
