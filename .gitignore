@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+*.pdf
 
 # debug
 npm-debug.log*
@@ -45,6 +46,7 @@ next-env.d.ts
 # データベース（ユーザーデータを含む）
 data/db.json
 data/db.backup.json
+data/*_backup*.json
 
 # アップロードされた動画・音声ファイル（容量が大きい）
 data/uploads/
@@ -69,3 +71,4 @@ data/dev.log
 # Claude Code 設定（個人環境用）
 AGENTS.md
 CLAUDE.md
+data/*_backup*.json
